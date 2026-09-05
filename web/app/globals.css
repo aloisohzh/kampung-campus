@@ -153,7 +153,7 @@ body {
   --secondary: #f5eedf;
   --secondary-foreground: #234333;
   --muted: #f5f0e6;
-  --muted-foreground: #69766d;
+  --muted-foreground: #53624f;
   --accent: #e9efdf;
   --accent-foreground: #224e38;
   --border: #e7dfcf;
@@ -512,14 +512,14 @@ p {
 }
 .heading h1 {
   font-size: clamp(1.8rem, 2.5vw, 2.65rem);
-  font-weight: 850;
+  font-weight: 750;
   letter-spacing: -0.045em;
   line-height: 1.18;
   margin: 10px 0;
 }
 .heading p {
-  font-size: 0.88rem;
-  color: #7c887c;
+  font-size: 1rem;
+  color: #53624f;
 }
 .outline-button {
   height: 39px !important;
@@ -567,14 +567,14 @@ p {
 .feature-banner h2 {
   font-size: clamp(1.6rem, 2.1vw, 2.3rem);
   color: var(--brand-cream);
-  font-weight: 800;
+  font-weight: 750;
   line-height: 1.18;
   letter-spacing: -0.04em;
   margin: 14px 0 11px;
 }
 .feature-banner p {
   color: #e1e7d3;
-  font-size: 0.79rem;
+  font-size: 0.95rem;
   line-height: 1.75;
 }
 .feature-banner button {
@@ -582,7 +582,7 @@ p {
   align-items: center;
   gap: 21px;
   color: #f3cfa4;
-  font-size: 0.76rem;
+  font-size: 0.875rem;
   font-weight: 550;
   margin-top: 18px;
 }
@@ -630,8 +630,8 @@ p {
   font-size: 1.18rem;
 }
 .section-heading > span {
-  color: #889182;
-  font-size: 0.69rem;
+  color: #596655;
+  font-size: 0.875rem;
 }
 .search-row {
   display: flex;
@@ -728,9 +728,9 @@ p {
   position: absolute;
   top: 13px;
   left: 13px;
-  font-size: 0.61rem;
+  font-size: 0.75rem;
   font-weight: 550;
-  background: #fffefaed;
+  background: #fffdf8;
   color: #415036;
   border-radius: 5px;
   padding: 5px 8px;
@@ -751,8 +751,8 @@ p {
   padding: 18px 17px 15px;
 }
 .activity-date {
-  font-size: 0.65rem;
-  color: #8c816b;
+  font-size: 0.875rem;
+  color: #655940;
   font-weight: 550;
 }
 .activity-body h3 {
@@ -761,8 +761,8 @@ p {
   margin: 6px 0 9px;
 }
 .activity-body > p {
-  color: #859080;
-  font-size: 0.72rem;
+  color: #53624f;
+  font-size: 0.875rem;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -800,12 +800,12 @@ p {
   background: #e8d5c8;
 }
 .neighbour-avatars > span {
-  font-size: 0.61rem;
-  color: #969d8f;
+  font-size: 0.75rem;
+  color: #596655;
   margin-left: 13px;
 }
 .spots {
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   color: #5a7446;
 }
 .activity-type-art {
@@ -864,15 +864,15 @@ p {
   margin: 25px 0 9px;
 }
 .credit-number > span {
-  font-size: 0.72rem;
+  font-size: 0.875rem;
   letter-spacing: 0;
   font-weight: 400;
-  color: #8a927e;
+  color: #53624f;
   margin-left: 9px;
 }
 .wallet-card > p {
-  font-size: 0.69rem;
-  color: #8d9583;
+  font-size: 0.875rem;
+  color: #53624f;
 }
 .wallet-mini {
   display: grid;
@@ -899,8 +899,8 @@ p {
   font-weight: 550;
 }
 .wallet-mini small {
-  font-size: 0.63rem;
-  color: #939b89;
+  font-size: 0.75rem;
+  color: #596655;
 }
 .wallet-card > button,
 .journey-card > button {
@@ -913,8 +913,8 @@ p {
   font-weight: 550;
 }
 .journey-card > p {
-  font-size: 0.77rem;
-  color: #87907c;
+  font-size: 0.875rem;
+  color: #53624f;
   margin: 15px 0 20px;
 }
 .journey-card b {

@@ -120,15 +120,14 @@ export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
           <h1>
             You bring the skills.
             <br />
-            We bring the
-            <br />
-            neighbours.
+            We bring the neighbours.
           </h1>
           <p>
             A little of what you know can mean
             <br />a whole lot to someone nearby.
           </p>
         </div>
+        <div className="welcome-illustration" aria-hidden="true" />
         <div className="welcome-caption">
           <span className="live-dot" /> GROWING TOGETHER IN PEK KIO
         </div>
