@@ -25,6 +25,57 @@ async function post(type, actor, payload = {}) {
   return { status: r.status, ...(await r.json()) };
 }
 const first = await get();
+assert.equal(
+  (
+    await post('profileLogin', 'resident', {
+      source: 'singpass',
+      consent: false,
+    })
+  ).status,
+  400,
+);
+assert.equal(
+  (
+    await post('profileLogin', 'resident', {
+      source: 'singpass',
+      consent: true,
+    })
+  ).status,
+  200,
+);
+assert.equal((await get()).state.profile.identity.status, 'Verified · demo');
+assert.equal(
+  (
+    await post('profileImport', 'resident', {
+      source: 'skills',
+      consent: true,
+      revision: 1,
+      selected: ['skill-1', 'skill-2', 'skill-3'],
+    })
+  ).status,
+  200,
+);
+const profileSyncs = await Promise.all(
+  Array.from({ length: 8 }, () =>
+    post('profileImport', 'resident', {
+      source: 'skills',
+      consent: true,
+      revision: 2,
+      selected: ['skill-1', 'skill-2', 'skill-3', 'skill-4'],
+    }),
+  ),
+);
+assert.ok(profileSyncs.some((r) => r.status === 200));
+assert.equal((await get()).state.profile.records.length, 4);
+assert.equal((await get(`${owner}-other`)).state.profile, undefined);
+assert.equal(
+  (await post('profileDisconnect', 'resident', { source: 'skills' })).status,
+  200,
+);
+assert.equal((await get()).state.profile.records.length, 0);
+console.log(
+  'PASS: profile consent, persistence, concurrent sync deduplication, owner isolation and disconnect',
+);
 await new Promise((r) => setTimeout(r, 10));
 const second = await get(`${owner}-other`);
 assert.notEqual(

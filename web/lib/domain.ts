@@ -1,4 +1,8 @@
 import { actors, rate, wallet } from './model.ts';
+import { ensure } from './rules.ts';
+import { updateProfile } from './profile.ts';
+export { RuleError } from './rules.ts';
+import { RuleError } from './rules.ts';
 import type {
   PilotState,
   Command,
@@ -7,15 +11,6 @@ import type {
   Transaction,
 } from './model.ts';
 
-export class RuleError extends Error {
-  status = 400;
-}
-const ensure: (condition: unknown, message: string) => asserts condition = (
-  condition,
-  message,
-) => {
-  if (!condition) throw new RuleError(message);
-};
 const textValue = (value: unknown, label: string, min = 1, max = 2000) => {
   ensure(
     typeof value === 'string' &&
@@ -114,6 +109,16 @@ export function execute(
   };
   let message = 'Saved to your pilot sandbox.';
   switch (command.type) {
+    case 'profileLogin':
+    case 'profileImport':
+    case 'profileDisconnect':
+    case 'profileComplete': {
+      allow('resident');
+      const result = updateProfile(s.profile, command, stamp);
+      s.profile = result.profile;
+      message = result.message;
+      break;
+    }
     case 'join': {
       allow('resident');
       active();

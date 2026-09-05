@@ -4,6 +4,8 @@ A working private pilot demonstration of the Pek Kio community platform describe
 
 ## Try the complete journey
 
+New sandboxes first show the resident sign-in demonstration. Existing sandboxes can open **Try profile setup** in the sidebar or `/#welcome`. Sample connections use the fixed resident Mei Lin; they do not create live provider sessions. The existing contribution-to-voucher journey remains available through **Explore the demo**.
+
 1. Start in **Resident** view: Mei Lin has 50 starter credits, 40 earned credits, and a pending helper contribution worth 10 credits.
 2. Choose **Reviewer** in the sidebar. Approve the study sprint contribution with a review note.
 3. Return to **Rewards**, open the kopi reward, and redeem 50 earned credits.
@@ -14,6 +16,8 @@ A working private pilot demonstration of the Pek Kio community platform describe
 For a new contribution, reserve an activity as the resident, switch to Organizer, choose **Complete demo session**, confirm attendance and a role, then submit the claim from My activities. The explicit completion action advances the sample event so the whole process can be tested immediately.
 
 ## What is implemented
+
+- Resident sign-in screens for Singpass/Myinfo, LinkedIn and email-link demonstrations; consented profile prefilling, selective bulk sample imports, profile review, source management and persistent sync results. See [the onboarding walkthrough](docs/profile-onboarding.md).
 
 - Activity search by keyword/location, categories and date horizon; details, bookings, refundable deposits, late cancellation, waitlists, release of sample places and interest lists.
 - Activity proposals, safety/access plans, operator approval, organizer cancellation, attendance confirmation and Meet/Make/Grow grant requests and decisions.

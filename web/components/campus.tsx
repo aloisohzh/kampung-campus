@@ -19,6 +19,7 @@ import {
   Leaf,
   CircleHelp,
   Check,
+  UserRound,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -56,6 +57,7 @@ import {
   wallet,
 } from '@/lib/model';
 import { Workspace } from './workspace';
+import { Welcome, ProfilePage } from './profile';
 import { date, time, type Run } from '@/lib/presentation';
 
 const nav = [
@@ -64,6 +66,7 @@ const nav = [
   { id: 'contributions', label: 'My contributions', icon: HeartHandshake },
   { id: 'wallet', label: 'My wallet', icon: Wallet },
   { id: 'rewards', label: 'Rewards', icon: Gift },
+  { id: 'profile', label: 'My profile', icon: UserRound },
 ];
 export default function Campus({ initial }: { initial: PilotState }) {
   const [state, setState] = useState(initial);
@@ -94,6 +97,13 @@ export default function Campus({ initial }: { initial: PilotState }) {
         error?: string;
       };
       if (data.revision >= latestRevision.current) {
+        if (
+          latestRevision.current === -1 &&
+          !location.hash &&
+          !data.state.profile?.completedAt
+        ) {
+          setPage('welcome');
+        }
         latestRevision.current = data.revision;
         setState(data.state);
       }
@@ -222,6 +232,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
         merchant: 'A warm welcome. A simple reward.',
         help: 'A little help goes a long way.',
         updates: 'The latest from your neighbourhood.',
+        profile: 'There’s more to you. Bring it along.',
       } as Record<string, string>
     )[page] || 'Welcome to your neighbourhood.';
   const descriptions: Record<string, string> = {
@@ -242,6 +253,8 @@ export default function Campus({ initial }: { initial: PilotState }) {
       'Keep an eye on funding, commitments, and the people behind the pilot.',
     merchant: 'Validate a sample voucher and confirm its one-time use.',
     help: 'How the Pek Kio pilot works, and where to go if something isn’t right.',
+    profile:
+      'Your skills, your credentials, and the connections that help tell your story.',
   };
   const chooseActor = (v: string | null) => {
     if (v && v in actors) {
@@ -251,6 +264,19 @@ export default function Campus({ initial }: { initial: PilotState }) {
       setError('');
     }
   };
+  if (page === 'welcome')
+    return (
+      <Welcome
+        profile={state.profile}
+        run={run}
+        disabled={busy || !ready}
+        error={error}
+        go={(next) => {
+          setActor('resident');
+          go(next);
+        }}
+      />
+    );
   return (
     <SidebarProvider
       style={{ '--sidebar-width': '15.5rem' } as React.CSSProperties}
@@ -335,6 +361,15 @@ export default function Campus({ initial }: { initial: PilotState }) {
         <SidebarFooter>
           <button className="help-button" onClick={() => go('help')}>
             <CircleHelp size={18} /> A little help?
+          </button>
+          <button
+            className="help-button"
+            onClick={() => {
+              setActor('resident');
+              go('welcome');
+            }}
+          >
+            <UserRound size={18} /> Try profile setup
           </button>
           <div className="profile">
             <span className="avatar">
@@ -431,7 +466,15 @@ export default function Campus({ initial }: { initial: PilotState }) {
               Opening your saved pilot sandbox…
             </output>
           )}
-          {page === 'discover' ? (
+          {page === 'profile' ? (
+            <ProfilePage
+              profile={state.profile}
+              run={run}
+              disabled={busy || !ready}
+              error={error}
+              go={go}
+            />
+          ) : page === 'discover' ? (
             <div className="discover-layout">
               <section>
                 <div className="feature-banner">

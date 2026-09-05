@@ -1,3 +1,4 @@
+import type { ResidentProfile } from './profile.ts';
 export type Actor =
   | 'resident'
   | 'organizer'
@@ -125,6 +126,7 @@ export type Incident = {
   resolution?: string;
 };
 export type PilotState = {
+  profile?: ResidentProfile;
   version: 1;
   created: string;
   periodStart: string;
