@@ -11,6 +11,8 @@ import {
 import type { PilotState } from '../lib/model.ts';
 
 const now = new Date('2026-09-05T09:00:00Z');
+const signedIn = () =>
+  apply(createSeed(now), 'profileLogin', { source: 'singpass', consent: true });
 const apply = (
   state: PilotState,
   type: string,
@@ -23,7 +25,7 @@ const apply = (
   ).state;
 
 void test('old saved activity venues stay in Kallang/Whampoa when choosing another town', () => {
-  const old = createSeed(now);
+  const old = signedIn();
   delete old.town;
   for (const activity of old.activities) delete activity.town;
   assert.equal(selectedTown(old), DEFAULT_TOWN);
@@ -39,8 +41,8 @@ void test('old saved activity venues stay in Kallang/Whampoa when choosing anoth
   assert.deepEqual(next.activities, old.activities);
 });
 
-void test('town chosen before sign-in is used by new profiles and retained on repeat sign-in', () => {
-  let state = apply(createSeed(now), 'selectTown', { town: 'Tampines' });
+void test('town chosen after sign-in is retained on repeat sign-in', () => {
+  let state = apply(signedIn(), 'selectTown', { town: 'Tampines' });
   state = apply(state, 'profileLogin', { source: 'singpass', consent: true });
   assert.equal(state.profile?.neighbourhood, 'Tampines');
   state = apply(state, 'profileLogin', { source: 'linkedin', consent: true });
@@ -60,6 +62,7 @@ void test('town changes preserve wallet, bookings, contributions and imported ve
     selected: ['credential-first-aid', 'credential-facilitation'],
   });
   state = apply(state, 'join', { id: 'garden' });
+  state = apply(state, 'selectTown', { town: DEFAULT_TOWN });
   state = apply(state, 'profileComplete', { confirm: true });
   const next = apply(state, 'selectTown', { town: 'Bedok' });
   assert.equal(next.profile?.neighbourhood, 'Bedok');
@@ -71,7 +74,7 @@ void test('town changes preserve wallet, bookings, contributions and imported ve
 });
 
 void test('town validation rejects unsupported input and works while awards are paused', () => {
-  const state = createSeed(now);
+  const state = signedIn();
   for (const town of ['', 'Pek Kio', 'Paris', null, 42]) {
     assert.throws(() => apply(state, 'selectTown', { town }), /Singapore list/);
   }
@@ -83,7 +86,7 @@ void test('town validation rejects unsupported input and works while awards are 
 });
 
 void test('new proposals use the selected town without relabelling earlier gatherings', () => {
-  const state = apply(createSeed(now), 'selectTown', { town: 'Bishan' });
+  const state = apply(signedIn(), 'selectTown', { town: 'Bishan' });
   const next = apply(state, 'propose', {
     actor: 'organizer',
     title: 'Neighbourhood knitting circle',

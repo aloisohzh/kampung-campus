@@ -22,10 +22,17 @@ export async function POST(request: Request) {
     if (
       !(file instanceof File) ||
       file.size > 5 * 1024 * 1024 ||
-      !['image/jpeg', 'image/png', 'application/pdf'].includes(file.type)
+      file.size === 0 ||
+      ![
+        'image/jpeg',
+        'image/png',
+        'application/pdf',
+        'text/plain',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ].includes(file.type)
     )
       return Response.json(
-        { error: 'Choose a JPG, PNG, or PDF under 5 MB.' },
+        { error: 'Choose a PDF, DOCX, TXT, JPG or PNG under 5 MB.' },
         { status: 400 },
       );
     const id = crypto.randomUUID();
@@ -70,7 +77,7 @@ export async function GET(request: Request) {
     return new Response(file.body, {
       headers: {
         'Content-Type': metadata.content_type,
-        'Content-Disposition': `attachment; filename="evidence-${id}.${metadata.content_type === 'application/pdf' ? 'pdf' : metadata.content_type === 'image/png' ? 'png' : 'jpg'}"`,
+        'Content-Disposition': `attachment; filename="document-${id}.${metadata.content_type === 'application/pdf' ? 'pdf' : metadata.content_type === 'image/png' ? 'png' : metadata.content_type === 'text/plain' ? 'txt' : metadata.content_type.includes('wordprocessingml') ? 'docx' : 'jpg'}"`,
         'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
       },

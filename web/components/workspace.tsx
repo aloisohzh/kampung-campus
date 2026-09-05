@@ -1852,6 +1852,23 @@ export function Workspace({
             use example data. Your signed-in workspace is saved separately from
             everyone else’s.
           </p>
+          <div className="info-box">
+            <h3>Walk through account creation</h3>
+            <p>
+              Review your town, try the example CV, sync credentials, and choose
+              your skills and hobbies before opening your home dashboard.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                chooseActor('resident');
+                go('account');
+              }}
+            >
+              Open account journey
+              <ArrowRight size={16} />
+            </Button>
+          </div>
           <div className="steps">
             <div>
               <h3>1. Give the contribution a second pair of eyes</h3>

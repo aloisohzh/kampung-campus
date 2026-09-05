@@ -28,15 +28,8 @@ const first = await get();
 assert.equal(first.state.town, 'Kallang/Whampoa');
 assert.equal(
   (await post('selectTown', 'resident', { town: 'Tampines' })).status,
-  200,
-);
-assert.equal((await get()).state.town, 'Tampines');
-assert.equal((await get(`${owner}-other`)).state.town, 'Kallang/Whampoa');
-assert.equal(
-  (await post('selectTown', 'resident', { town: 'unsupported' })).status,
   400,
 );
-assert.equal((await get()).state.town, 'Tampines');
 assert.equal(
   (
     await post('profileLogin', 'resident', {
@@ -56,6 +49,16 @@ assert.equal(
   200,
 );
 assert.equal((await get()).state.profile.identity.status, 'Verified · demo');
+assert.equal(
+  (await post('selectTown', 'resident', { town: 'Tampines' })).status,
+  200,
+);
+assert.equal((await get()).state.town, 'Tampines');
+assert.equal((await get(`${owner}-other`)).state.town, 'Kallang/Whampoa');
+assert.equal(
+  (await post('selectTown', 'resident', { town: 'unsupported' })).status,
+  400,
+);
 assert.equal((await get()).state.profile.neighbourhood, 'Tampines');
 assert.equal(
   (await post('selectTown', 'resident', { town: 'Bedok' })).status,
@@ -195,6 +198,97 @@ const otherFile = await fetch(`${base}/api/evidence?id=${file.id}`, {
 assert.equal(otherFile.status, 404);
 console.log(
   'PASS: evidence persists in R2 and is inaccessible from another sandbox',
+);
+
+const cvData = new FormData();
+cvData.append(
+  'file',
+  new Blob(['Mei Lin\nProject management, teaching and gardening.'], {
+    type: 'text/plain',
+  }),
+  'my-cv.txt',
+);
+const cvUpload = await fetch(`${base}/api/evidence`, {
+  method: 'POST',
+  headers: { 'oai-authenticated-user-id': owner, Origin: base },
+  body: cvData,
+});
+assert.equal(cvUpload.status, 200);
+const cvFile = await cvUpload.json();
+const attach = {
+  uploadId: cvFile.id,
+  kind: 'CV / résumé',
+  title: 'My CV',
+  issuer: '',
+  expires: '',
+  skills: ['Project management', 'Teaching'],
+  status: 'Verified',
+};
+assert.equal((await post('profileAttach', 'resident', attach)).status, 200);
+assert.equal((await post('profileAttach', 'resident', attach)).status, 200);
+const savedDocument = (await get()).state.profile.documents[0];
+assert.equal(savedDocument.name, 'my-cv.txt');
+assert.equal(savedDocument.status, 'Uploaded');
+assert.equal((await get()).state.profile.documents.length, 1);
+assert.equal(
+  await (
+    await fetch(`${base}/api/evidence?id=${cvFile.id}`, { headers })
+  ).text(),
+  'Mei Lin\nProject management, teaching and gardening.',
+);
+const stolen = await fetch(`${base}/api/pilot`, {
+  method: 'POST',
+  headers: ownerTwoHeaders,
+  body: JSON.stringify({
+    type: 'profileAttach',
+    actor: 'resident',
+    key: crypto.randomUUID(),
+    ...attach,
+    document: { id: cvFile.id, name: 'forged.txt', status: 'Verified' },
+  }),
+});
+assert.equal(stolen.status, 400);
+assert.equal(
+  (
+    await post('profileAttach', 'resident', {
+      ...attach,
+      uploadId: file.id,
+      kind: 'Certification',
+      title: 'First aid certificate',
+      issuer: 'Uploaded issuer',
+      expires: '2027-12-31',
+    })
+  ).status,
+  200,
+);
+assert.equal(
+  (await get()).state.profile.documents[1].status,
+  'Awaiting verification',
+);
+assert.equal(
+  (
+    await post('profileUpdate', 'resident', {
+      about: 'Happy to help neighbours learn.',
+      selfSkills: ['Baking'],
+      expertise: ['Workshop facilitation'],
+      hobbies: ['Gardening', 'Reading'],
+    })
+  ).status,
+  200,
+);
+assert.deepEqual((await get()).state.profile.hobbies, ['Gardening', 'Reading']);
+assert.equal(
+  (await post('profileComplete', 'resident', { confirm: true })).status,
+  200,
+);
+assert.ok((await get()).state.profile.completedAt);
+assert.ok(
+  !(await get()).state.notices.some((notice) =>
+    notice.text.startsWith('Your town is now'),
+  ),
+);
+console.log(
+  'PASS: CV files and reviewed skills persist; document ownership, deduplication, verification status and account completion are enforced',
 );
 console.log(
   'All API integration checks passed. Test records are isolated from the preview user.',

@@ -111,15 +111,20 @@ export function execute(
   let message = 'Saved to your workspace.';
   switch (command.type) {
     case 'selectTown': {
+      ensure(s.profile, 'Sign in before choosing your town.');
       ensure(isTown(command.town), 'Choose a town from the Singapore list.');
       s.town = command.town;
-      if (s.profile) s.profile.neighbourhood = command.town;
+      s.profile.neighbourhood = command.town;
+      s.profile.townConfirmedAt = stamp;
       message = `Your town is now ${command.town}.`;
       break;
     }
     case 'profileLogin':
     case 'profileImport':
     case 'profileDisconnect':
+    case 'profileUpdate':
+    case 'profileAttach':
+    case 'profileRemoveDocument':
     case 'profileComplete': {
       allow('resident');
       const result = updateProfile(s.profile, command, stamp, selectedTown(s));
@@ -776,6 +781,8 @@ export function execute(
     'This action would over-allocate a reward.',
   );
   s.processed.push(command.key);
-  notify(message);
+  // Account preferences remain in the private event audit, not the community feed.
+  if (command.type !== 'selectTown' && !command.type.startsWith('profile'))
+    notify(message);
   return { state: s, message };
 }

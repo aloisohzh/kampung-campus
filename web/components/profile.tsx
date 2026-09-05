@@ -1,16 +1,18 @@
 'use client';
+/* oxlint-disable next/no-img-element -- User-supplied local provider logo. */
 /* oxlint-disable next/no-html-link-for-pages -- Sites owns the native top-level sign-in route. */
 import { useState } from 'react';
 import { Brand } from './brand';
+import { greeting, allSkills } from '@/lib/profile-details';
+import { ProfileDetails } from './profile-details';
+import { ProfileDocuments } from './profile-documents';
 import { TownSelector } from './town-selector';
 import type { Town } from '@/lib/towns';
 import {
   ArrowRight,
-  ArrowLeft,
   ShieldCheck,
   Mail,
   Sprout,
-  Check,
   RefreshCw,
   FileBadge,
   Fingerprint,
@@ -41,13 +43,13 @@ import {
   sampleRecords,
   recordChange,
   type ProfileSource,
-  type ImportSource,
   type ResidentProfile,
   type ProfileRecord,
 } from '@/lib/profile';
 import { date, time, type Run } from '@/lib/presentation';
 
 type ProfileProps = {
+  now?: number;
   profile?: ResidentProfile;
   town: Town;
   onTownChange: (town: Town) => void;
@@ -64,9 +66,17 @@ const sources: ProfileSource[] = [
   'credentials',
 ];
 const logins: ProfileSource[] = ['singpass', 'linkedin', 'email'];
-function SourceMark({ source }: { source: ProfileSource }) {
+export function SourceMark({ source }: { source: ProfileSource }) {
   if (source === 'singpass')
-    return <span className="source-mark singpass-mark">S</span>;
+    return (
+      <img
+        className="source-mark singpass-logo"
+        src="/brand/singpass.png"
+        alt="Singpass"
+        width={48}
+        height={36}
+      />
+    );
   if (source === 'linkedin')
     return <span className="source-mark linkedin-mark">in</span>;
   return (
@@ -102,16 +112,14 @@ function Status({ record }: { record: ProfileRecord }) {
 
 export function Welcome({
   profile,
-  town,
-  onTownChange,
   run,
   disabled,
   error,
   go,
+  now,
 }: ProfileProps) {
-  const [stage, setStage] = useState<'login' | 'import'>('login');
   const [source, setSource] = useState<ProfileSource | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
+  const [creating, setCreating] = useState(false);
   return (
     <main className="welcome-shell">
       <section className="welcome-story">
@@ -132,157 +140,75 @@ export function Welcome({
         </div>
         <div className="welcome-illustration" aria-hidden="true" />
         <div className="welcome-caption">
-          <span className="live-dot" /> GROWING TOGETHER ACROSS SINGAPORE
+          <span className="live-dot" />
+          GROWING TOGETHER ACROSS SINGAPORE
         </div>
       </section>
       <section className="welcome-form">
         <div className="welcome-top">
-          <TownSelector
-            value={town}
-            onChange={onTownChange}
-            disabled={disabled}
-          />
-          <button onClick={() => go('discover')}>
-            Explore activities <ArrowRight size={16} />
-          </button>
-        </div>
-        <div className="welcome-inner">
-          <ol className="onboarding-steps" aria-label="Profile creation steps">
-            <li className={stage === 'login' ? 'current' : 'done'}>
-              <span>{stage === 'import' ? <Check size={14} /> : '1'}</span> Sign
-              in
-            </li>
-            <li className={stage === 'import' ? 'current' : ''}>
-              <span>2</span> Bring your skills
-            </li>
-            <li>
-              <span>3</span> Your community
-            </li>
-          </ol>
-          {stage === 'login' ? (
-            <>
-              <span className="eyebrow">GOOD TO HAVE YOU HERE</span>
-              <h2>
-                Your next chapter
-                <br />
-                starts with hello.
-              </h2>
-              <p className="welcome-intro">
-                Create a profile with the details you already have. Less form
-                filling. More getting involved.
-              </p>
-              <div className="provider-options">
-                {logins.map((id) => (
-                  <Button
-                    key={id}
-                    className={`provider-button provider-${id}`}
-                    variant="outline"
-                    disabled={disabled}
-                    onClick={() => setSource(id)}
-                  >
-                    <SourceMark source={id} />
-                    <span>
-                      <strong>
-                        Continue with{' '}
-                        {id === 'email'
-                          ? 'email'
-                          : sourceInfo[id].title.split(' /')[0]}
-                      </strong>
-                      <small>{sourceInfo[id].description}</small>
-                    </span>
-                    <ArrowRight size={18} />
-                  </Button>
-                ))}
-              </div>
-              <p className="welcome-reassurance">
-                <Fingerprint size={18} /> Singpass can establish identity.
-                Skills and qualifications are checked separately.
-              </p>
-            </>
-          ) : (
-            <>
-              <button className="back-link" onClick={() => setStage('login')}>
-                <ArrowLeft size={15} /> Sign-in methods
-              </button>
-              <span className="eyebrow">A HEAD START, JUST FOR YOU</span>
-              <h2>
-                Hello, Mei.
-                <br />
-                Bring what you know.
-              </h2>
-              <p className="welcome-intro">
-                Your sample profile is filled in. Choose what to bring across,
-                then review it before joining in.
-              </p>
-              <div className="prefilled-profile">
-                <span className="avatar">ML</span>
-                <div>
-                  <strong>{profile?.name}</strong>
-                  <small>
-                    {profile?.email} · {town}
-                  </small>
-                </div>
-                <span className="record-status">
-                  {profile?.identity.status === 'Verified · demo'
-                    ? 'Identity verified · example'
-                    : 'Identity unverified'}
-                </span>
-              </div>
-              <div className="setup-imports">
-                {(['skills', 'credentials'] as ImportSource[]).map((id) => (
-                  <button
-                    key={id}
-                    className="setup-import"
-                    disabled={disabled}
-                    onClick={() => setSource(id)}
-                  >
-                    <SourceMark source={id} />
-                    <span>
-                      <strong>{sourceInfo[id].title}</strong>
-                      <small>
-                        {profile?.connections.some((c) => c.source === id)
-                          ? `${profile.records.filter((r) => r.source === id).length} records imported · review updates`
-                          : sourceInfo[id].description}
-                      </small>
-                    </span>
-                    {profile?.connections.some((c) => c.source === id) ? (
-                      <Check size={20} />
-                    ) : (
-                      <ArrowRight size={20} />
-                    )}
-                  </button>
-                ))}
-              </div>
-              <label className="profile-consent" htmlFor="profile-confirm">
-                <Checkbox
-                  id="profile-confirm"
-                  checked={confirmed}
-                  onCheckedChange={(value) => setConfirmed(value === true)}
-                />
-                <span>
-                  I have reviewed these sample details. I can manage imported
-                  records in My profile.
-                </span>
-              </label>
-              <Button
-                className="primary-button finish-profile"
-                disabled={disabled || !confirmed}
-                onClick={async () => {
-                  if (await run('profileComplete', { confirm: confirmed }))
-                    go('profile');
-                }}
-              >
-                Create my profile <ArrowRight size={18} />
-              </Button>
-              <p className="quiet-copy">
-                Imports are optional. You can connect more sources later.
-              </p>
-            </>
+          <span>KAMPUNG CAMPUS</span>
+          {profile?.completedAt && (
+            <button onClick={() => go('dashboard')}>
+              Back to home <ArrowRight size={16} />
+            </button>
           )}
+        </div>
+        <div className="welcome-inner login-inner">
+          <span className="eyebrow">
+            {creating ? 'A LITTLE CLOSER, EVERY DAY' : 'WELCOME BACK'}
+          </span>
+          <h2>
+            {creating
+              ? 'Make yourself at home.'
+              : greeting(now ?? 0) +
+                (profile ? ', ' + profile.name.split(' ')[0] : '') +
+                '.'}
+          </h2>
+          <p className="welcome-intro">
+            {creating
+              ? 'Start with a few familiar details. Then choose your town and bring your experience along.'
+              : 'Sign in for your gatherings, useful next steps and a little inspiration close to home.'}
+          </p>
+          <div className="provider-options">
+            {logins.map((id) => (
+              <Button
+                key={id}
+                className={'provider-button provider-' + id}
+                variant="outline"
+                disabled={disabled}
+                onClick={() => setSource(id)}
+              >
+                <SourceMark source={id} />
+                <span>
+                  <strong>
+                    Continue with{' '}
+                    {id === 'email'
+                      ? 'email'
+                      : sourceInfo[id].title.split(' /')[0]}
+                  </strong>
+                  <small>{sourceInfo[id].description}</small>
+                </span>
+                <ArrowRight size={18} />
+              </Button>
+            ))}
+          </div>
+          <p className="welcome-reassurance">
+            <Fingerprint size={18} />
+            Your town, skills and interests come after sign-in.
+          </p>
+          <div className="login-switch">
+            <span>
+              {creating
+                ? 'Already have an account?'
+                : 'New to the neighbourhood?'}
+            </span>
+            <button onClick={() => setCreating(!creating)}>
+              {creating ? 'Sign in' : 'Create an account'}
+              <ArrowRight size={16} />
+            </button>
+          </div>
           {disabled && !error && (
-            <output className="quiet-copy">
-              Loading or saving your profile…
-            </output>
+            <output className="quiet-copy">Opening your account…</output>
           )}
           {error && (
             <div className="notice error" role="alert">
@@ -292,7 +218,7 @@ export function Welcome({
                   href="/signin-with-chatgpt?return_to=%2F%23welcome"
                   target="_top"
                 >
-                  Sign in
+                  Sign in to access Kampung Campus
                 </a>
               )}
             </div>
@@ -308,9 +234,9 @@ export function Welcome({
           disabled={disabled}
           error={error}
           close={() => setSource(null)}
-          onSaved={() => {
-            if (logins.includes(source)) setStage('import');
-          }}
+          onSaved={() =>
+            go(creating || !profile?.completedAt ? 'account' : 'dashboard')
+          }
         />
       )}
     </main>
@@ -396,7 +322,7 @@ export function ProfilePage({
             </div>
             <div className="profile-stats">
               <div>
-                <b>{skills.length}</b>
+                <b>{allSkills(profile).length}</b>
                 <span>skills to share</span>
               </div>
               <div>
@@ -409,6 +335,17 @@ export function ProfilePage({
               </div>
             </div>
           </div>
+        </section>
+        <section className="profile-section">
+          <span className="eyebrow">PROFILE SETUP</span>
+          <h2>Make it yours</h2>
+          <p className="quiet-copy">
+            Update your introduction, skills, expertise and interests here.
+          </p>
+          <ProfileDetails profile={profile} run={run} disabled={disabled} />
+        </section>
+        <section className="profile-section">
+          <ProfileDocuments profile={profile} run={run} disabled={disabled} />
         </section>
         <section className="profile-section">
           <div className="profile-section-heading">
@@ -647,7 +584,7 @@ export function ProfilePage({
   );
 }
 
-function ConnectDialog({
+export function ConnectDialog({
   source,
   profile,
   run,

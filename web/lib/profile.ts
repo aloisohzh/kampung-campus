@@ -1,6 +1,7 @@
 import type { Command } from './model.ts';
 import { ensure } from './rules.ts';
 import { DEFAULT_TOWN, type Town } from './towns.ts';
+import { cleanTags, type ProfileDocument } from './profile-details.ts';
 
 export type LoginProvider = 'singpass' | 'linkedin' | 'email';
 export type ImportSource = 'skills' | 'credentials';
@@ -22,6 +23,13 @@ export type ProfileRecord = {
   syncedAt?: string;
 };
 export type ResidentProfile = {
+  townConfirmedAt?: string;
+  accountStep?: number;
+  about?: string;
+  selfSkills?: string[];
+  expertise?: string[];
+  hobbies?: string[];
+  documents?: ProfileDocument[];
   mode: 'demo';
   name: string;
   email: string;
@@ -183,6 +191,93 @@ export function updateProfile(
     };
   }
   ensure(profile, 'Start with a sign-in method.');
+  if (command.type === 'profileUpdate') {
+    ensure(
+      typeof command.about === 'string' && command.about.length <= 1200,
+      'Keep your introduction within 1,200 characters.',
+    );
+    profile.about = command.about.trim();
+    profile.accountStep = 3;
+    profile.selfSkills = cleanTags(command.selfSkills);
+    profile.expertise = cleanTags(command.expertise);
+    profile.hobbies = cleanTags(command.hobbies);
+    return {
+      profile,
+      message: 'Your skills, expertise and interests are saved.',
+    };
+  }
+  if (command.type === 'profileAttach') {
+    const metadata = command.document as
+      | { id: string; name: string; size: number; content_type: string }
+      | undefined;
+    ensure(
+      metadata && metadata.id === command.uploadId,
+      'Choose an uploaded document from your account.',
+    );
+    ensure(
+      ['CV / résumé', 'Certification', 'Accreditation'].includes(
+        String(command.kind),
+      ),
+      'Choose a document type.',
+    );
+    ensure(
+      typeof command.title === 'string' &&
+        command.title.trim().length >= 2 &&
+        command.title.length <= 120,
+      'Give your document a title of 2–120 characters.',
+    );
+    ensure(
+      typeof command.issuer === 'string' && command.issuer.length <= 120,
+      'Keep the issuer name within 120 characters.',
+    );
+    ensure(
+      typeof command.expires === 'string' &&
+        (!command.expires ||
+          (/^\d{4}-\d{2}-\d{2}$/.test(command.expires) &&
+            !Number.isNaN(Date.parse(command.expires)) &&
+            new Date(command.expires).toISOString().slice(0, 10) ===
+              command.expires)),
+      'Choose a valid expiry date.',
+    );
+    profile.documents ??= [];
+    if (profile.documents.some((document) => document.id === metadata.id))
+      return { profile, message: 'This document is already in your profile.' };
+    ensure(
+      profile.documents.length < 20,
+      'You can keep up to 20 documents in your profile.',
+    );
+    const kind = command.kind as ProfileDocument['kind'];
+    profile.documents.push({
+      id: metadata.id,
+      name: metadata.name,
+      size: metadata.size,
+      contentType: metadata.content_type,
+      title: command.title.trim(),
+      kind,
+      issuer: command.issuer.trim(),
+      expires: command.expires || undefined,
+      addedAt: stamp,
+      skills: kind === 'CV / résumé' ? cleanTags(command.skills) : [],
+      status: kind === 'CV / résumé' ? 'Uploaded' : 'Awaiting verification',
+    });
+    return {
+      profile,
+      message:
+        kind === 'CV / résumé'
+          ? 'CV and reviewed skills saved to your profile.'
+          : 'Document saved. Verification is still required.',
+    };
+  }
+  if (command.type === 'profileRemoveDocument') {
+    ensure(
+      profile.documents?.some((document) => document.id === command.id),
+      'This document is no longer in your profile.',
+    );
+    profile.documents = (profile.documents ?? []).filter(
+      (document) => document.id !== command.id,
+    );
+    return { profile, message: 'Document removed from your profile.' };
+  }
   if (command.type === 'profileImport') {
     ensure(
       source === 'skills' || source === 'credentials',
@@ -260,6 +355,10 @@ export function updateProfile(
     };
   }
   ensure(command.type === 'profileComplete', 'Unknown profile action.');
+  ensure(
+    profile.townConfirmedAt || profile.completedAt,
+    'Confirm your town before completing your account.',
+  );
   ensure(
     command.confirm === true,
     'Confirm your sample profile details first.',

@@ -43,6 +43,22 @@ export async function loadSpace(owner: string) {
 }
 export async function mutateSpace(owner: string, command: Command) {
   const db = database();
+  if (command.type === 'profileAttach') {
+    const metadata = await db
+      .prepare(
+        'SELECT id,name,size,content_type FROM evidence_uploads WHERE id = ? AND owner = ?',
+      )
+      .bind(typeof command.uploadId === 'string' ? command.uploadId : '', owner)
+      .first<{
+        id: string;
+        name: string;
+        size: number;
+        content_type: string;
+      }>();
+    if (!metadata)
+      throw new RuleError('This document does not belong to your account.');
+    command = { ...command, document: metadata };
+  }
   if (command.evidence) {
     if (!Array.isArray(command.evidence) || command.evidence.length > 3)
       throw new RuleError('Attach up to three evidence files.');

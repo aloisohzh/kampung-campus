@@ -20,6 +20,7 @@ import {
   CircleHelp,
   Check,
   UserRound,
+  House,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -31,6 +32,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -62,8 +64,13 @@ import { Brand } from './brand';
 import { TownSelector } from './town-selector';
 import { selectedTown, inTown, activityTown, type Town } from '@/lib/towns';
 import { date, time, type Run } from '@/lib/presentation';
+import { AccountSetup } from './account-setup';
+import { Dashboard, CommunityUpdates } from './dashboard';
+import { accountRoute, neighbourhoodItems } from '@/lib/dashboard';
+import { greeting } from '@/lib/profile-details';
 
 const nav = [
+  { id: 'dashboard', label: 'Home', icon: House },
   { id: 'discover', label: 'Discover', icon: Compass },
   { id: 'activities', label: 'My activities', icon: CalendarDays },
   { id: 'contributions', label: 'My contributions', icon: HeartHandshake },
@@ -72,8 +79,18 @@ const nav = [
   { id: 'profile', label: 'My profile', icon: UserRound },
 ];
 export default function Campus({ initial }: { initial: PilotState }) {
+  return (
+    <SidebarProvider
+      style={{ '--sidebar-width': '15.5rem' } as React.CSSProperties}
+    >
+      <CampusContent initial={initial} />
+    </SidebarProvider>
+  );
+}
+function CampusContent({ initial }: { initial: PilotState }) {
+  const { setOpenMobile } = useSidebar();
   const [state, setState] = useState(initial);
-  const [page, setPage] = useState('discover');
+  const [requestedPage, setPage] = useState('dashboard');
   const [category, setCategory] = useState('All activities');
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<Activity | null>(null);
@@ -85,6 +102,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
   const [dateFilter, setDateFilter] = useState('any');
   const [allTowns, setAllTowns] = useState(false);
   const [clock, setClock] = useState(() => new Date(initial.created).getTime());
+  const page = accountRoute(state.profile, requestedPage);
   const latestRevision = useRef(-1);
   const refresh = useCallback(async () => {
     try {
@@ -103,13 +121,8 @@ export default function Campus({ initial }: { initial: PilotState }) {
         error?: string;
       };
       if (data.revision >= latestRevision.current) {
-        if (
-          latestRevision.current === -1 &&
-          !location.hash &&
-          !data.state.profile?.completedAt
-        ) {
-          setPage('welcome');
-        }
+        if (latestRevision.current === -1)
+          setPage(location.hash.slice(1) || 'dashboard');
         latestRevision.current = data.revision;
         setState(data.state);
       }
@@ -151,6 +164,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
     };
   }, []);
   const go = (next: string) => {
+    setOpenMobile(false);
     setPage(next);
     window.history.replaceState(null, '', `#${next}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -238,6 +252,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
   const title =
     (
       {
+        dashboard: `${greeting(clock)}, ${state.profile?.name.split(' ')[0] || 'neighbour'}.`,
         discover: 'Find your kind of together.',
         activities: 'Your next shared moment.',
         contributions: 'Every little contribution counts.',
@@ -253,6 +268,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
       } as Record<string, string>
     )[page] || 'Welcome to your neighbourhood.';
   const descriptions: Record<string, string> = {
+    dashboard: 'Your plans, your people, and something to look forward to.',
     discover:
       'Small moments. Shared interests. A neighbourhood that feels like home.',
     activities:
@@ -276,7 +292,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
   const chooseActor = (v: string | null) => {
     if (v && v in actors) {
       setActor(v as Actor);
-      go(v === 'resident' ? 'discover' : v);
+      go(v === 'resident' ? 'dashboard' : v);
       setMessage('');
       setError('');
     }
@@ -284,6 +300,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
   if (page === 'welcome')
     return (
       <Welcome
+        now={clock}
         profile={state.profile}
         town={town}
         onTownChange={changeTown}
@@ -296,10 +313,22 @@ export default function Campus({ initial }: { initial: PilotState }) {
         }}
       />
     );
+  if (page === 'account' && state.profile)
+    return (
+      <AccountSetup
+        profile={state.profile}
+        town={town}
+        run={run}
+        disabled={busy || !ready}
+        error={error}
+        go={(next) => {
+          setActor('resident');
+          go(next);
+        }}
+      />
+    );
   return (
-    <SidebarProvider
-      style={{ '--sidebar-width': '15.5rem' } as React.CSSProperties}
-    >
+    <>
       <Sidebar className="campus-sidebar">
         <SidebarHeader>
           <a className="brand" href="/">
@@ -383,7 +412,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
               go('welcome');
             }}
           >
-            <UserRound size={18} /> Profile setup
+            <UserRound size={18} /> Sign-in options
           </button>
           <div className="profile">
             <span className="avatar">
@@ -422,7 +451,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
               className="notification-button"
             >
               <Bell size={19} />
-              <i />
+              {neighbourhoodItems(state, clock).length > 0 && <i />}
             </button>
             <span className="avatar small">
               {actors[actor].name
@@ -482,7 +511,21 @@ export default function Campus({ initial }: { initial: PilotState }) {
               Opening your saved workspace…
             </output>
           )}
-          {page === 'profile' ? (
+          {page === 'dashboard' ? (
+            <Dashboard
+              state={state}
+              now={clock}
+              go={go}
+              onActivity={setDetail}
+            />
+          ) : page === 'updates' ? (
+            <CommunityUpdates
+              state={state}
+              now={clock}
+              go={go}
+              onActivity={setDetail}
+            />
+          ) : page === 'profile' ? (
             <ProfilePage
               profile={state.profile}
               town={town}
@@ -935,6 +978,6 @@ export default function Campus({ initial }: { initial: PilotState }) {
           )}
         </DialogContent>
       </Dialog>
-    </SidebarProvider>
+    </>
   );
 }

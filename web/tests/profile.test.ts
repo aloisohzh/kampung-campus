@@ -16,7 +16,11 @@ const apply = (
     now,
   ).state;
 const login = (source = 'singpass') =>
-  apply(createSeed(now), 'profileLogin', { source, consent: true });
+  apply(
+    apply(createSeed(now), 'profileLogin', { source, consent: true }),
+    'selectTown',
+    { town: 'Kallang/Whampoa' },
+  );
 const importFrom = (
   state: PilotState,
   source: 'skills' | 'credentials',
