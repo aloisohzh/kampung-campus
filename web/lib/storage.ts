@@ -3,7 +3,7 @@ import { createSeed } from './seed';
 import { execute, RuleError } from './domain';
 import type { PilotState, Command } from './model';
 export function database() {
-  if (!env.DB) throw new Error('The pilot database is unavailable.');
+  if (!env.DB) throw new Error('The database is unavailable.');
   return env.DB;
 }
 export function ownerOf(request: Request) {
@@ -38,7 +38,7 @@ export async function loadSpace(owner: string) {
       .bind(owner)
       .first<Row>();
   }
-  if (!row) throw new Error('Your sandbox could not be opened.');
+  if (!row) throw new Error('Your workspace could not be opened.');
   return { state: JSON.parse(row.state) as PilotState, revision: row.revision };
 }
 export async function mutateSpace(owner: string, command: Command) {
@@ -53,7 +53,7 @@ export async function mutateSpace(owner: string, command: Command) {
         .first();
       if (!file)
         throw new RuleError(
-          'An evidence attachment does not belong to your sandbox.',
+          'An evidence attachment does not belong to your workspace.',
         );
     }
   }
@@ -95,7 +95,7 @@ export async function mutateSpace(owner: string, command: Command) {
     if (changes[0].meta.changes === 1) return { ...result, revision };
   }
   throw Object.assign(
-    new Error('Another action just changed your sandbox. Please try again.'),
+    new Error('Another action just changed your workspace. Please try again.'),
     { status: 409 },
   );
 }

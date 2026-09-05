@@ -177,7 +177,7 @@ void test('organizer completion and attendance enable claim without self award',
   const id = s.registrations.at(-1)!.id;
   assert.throws(
     () => apply(s, 'attendance', 'organizer', { id, role: 'Helper' }),
-    /Complete the demo/,
+    /Complete the session/,
   );
   s = apply(s, 'completeActivity', 'organizer', { id: 'garden' });
   s = apply(s, 'attendance', 'organizer', { id, role: 'Helper' });

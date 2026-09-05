@@ -15,7 +15,7 @@ function failure(e: unknown) {
     {
       error: error.status
         ? error.message
-        : 'Your sandbox is temporarily unavailable. Please try again.',
+        : 'Your workspace is temporarily unavailable. Please try again.',
     },
     error.status || 500,
   );
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const origin = request.headers.get('origin');
     if (!origin || origin !== new URL(request.url).origin)
       return json(
-        { error: 'This request must come from your pilot site.' },
+        { error: 'This request must come from your Kampung Campus site.' },
         403,
       );
     if (Number(request.headers.get('content-length') || 0) > 30000)

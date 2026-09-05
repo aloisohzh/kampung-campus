@@ -59,6 +59,8 @@ import {
 import { Workspace } from './workspace';
 import { Welcome, ProfilePage } from './profile';
 import { Brand } from './brand';
+import { TownSelector } from './town-selector';
+import { selectedTown, inTown, activityTown, type Town } from '@/lib/towns';
 import { date, time, type Run } from '@/lib/presentation';
 
 const nav = [
@@ -81,6 +83,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [dateFilter, setDateFilter] = useState('any');
+  const [allTowns, setAllTowns] = useState(false);
   const [clock, setClock] = useState(() => new Date(initial.created).getTime());
   const latestRevision = useRef(-1);
   const refresh = useCallback(async () => {
@@ -88,8 +91,10 @@ export default function Campus({ initial }: { initial: PilotState }) {
       const r = await fetch('/api/pilot');
       if (!r.ok) {
         if (r.status === 401)
-          throw new Error('Sign in with ChatGPT to save your pilot sandbox.');
-        throw new Error('Your sandbox could not be loaded. Please try again.');
+          throw new Error('Sign in with ChatGPT to save your workspace.');
+        throw new Error(
+          'Your workspace could not be loaded. Please try again.',
+        );
       }
       const data = (await r.json()) as {
         state: PilotState;
@@ -111,7 +116,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
       setReady(true);
       setClock(Date.now());
       setError((previous) =>
-        /sandbox could not be loaded|Sign in with ChatGPT|Failed to fetch/.test(
+        /workspace could not be loaded|Sign in with ChatGPT|Failed to fetch/.test(
           previous,
         )
           ? ''
@@ -189,6 +194,16 @@ export default function Campus({ initial }: { initial: PilotState }) {
       setBusy(false);
     }
   };
+  const town = selectedTown(state);
+  const changeTown = async (next: Town) => {
+    if (await run('selectTown', { town: next })) setAllTowns(false);
+  };
+  const browseAll = () => {
+    setAllTowns(true);
+    setQuery('');
+    setCategory('All activities');
+    setDateFilter('any');
+  };
   const balance = wallet(state, 'mei', clock);
   const approved = state.contributions.filter(
     (c) => c.resident === 'mei' && c.status === 'Approved',
@@ -204,6 +219,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
   const visible = state.activities.filter(
     (a) =>
       a.status === 'Open' &&
+      (allTowns || inTown(a, town)) &&
       (category === 'All activities' || a.category === category) &&
       `${a.title} ${a.location} ${a.description}`
         .toLowerCase()
@@ -251,9 +267,9 @@ export default function Campus({ initial }: { initial: PilotState }) {
     reviewer:
       'Check the evidence, apply the published rules, and record your decision.',
     operator:
-      'Keep an eye on funding, commitments, and the people behind the pilot.',
+      'Keep an eye on funding, commitments, and the people behind the community.',
     merchant: 'Validate a sample voucher and confirm its one-time use.',
-    help: 'How the Pek Kio pilot works, and where to go if something isn’t right.',
+    help: 'How Kampung Campus works, and where to go if something isn’t right.',
     profile:
       'Your skills, your credentials, and the connections that help tell your story.',
   };
@@ -269,6 +285,8 @@ export default function Campus({ initial }: { initial: PilotState }) {
     return (
       <Welcome
         profile={state.profile}
+        town={town}
+        onTownChange={changeTown}
         run={run}
         disabled={busy || !ready}
         error={error}
@@ -287,10 +305,12 @@ export default function Campus({ initial }: { initial: PilotState }) {
           <a className="brand" href="/">
             <Brand stacked />
           </a>
-          <div className="neighbourhood">
-            <MapPin size={15} /> Pek Kio, Singapore{' '}
-            <span className="live-dot" />
-          </div>
+          <TownSelector
+            value={town}
+            onChange={changeTown}
+            disabled={busy || !ready}
+            label="Your neighbourhood town"
+          />
         </SidebarHeader>
         <SidebarContent>
           <div className="nav-caption">YOUR NEIGHBOURHOOD</div>
@@ -334,11 +354,11 @@ export default function Campus({ initial }: { initial: PilotState }) {
               Start an activity <ArrowUpRight size={17} />
             </button>
           </div>
-          <div className="nav-caption">PILOT WORKSPACE</div>
+          <div className="nav-caption">WORKSPACE</div>
           <Select value={actor} onValueChange={chooseActor}>
             <SelectTrigger
               className="role-select"
-              aria-label="Choose demonstration role"
+              aria-label="Choose workspace view"
             >
               <SelectValue>{actors[actor].title} view</SelectValue>
             </SelectTrigger>
@@ -350,7 +370,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
               ))}
             </SelectContent>
           </Select>
-          <p className="role-hint">Try each role in your own saved demo.</p>
+          <p className="role-hint">Follow each step from a different role.</p>
         </SidebarContent>
         <SidebarFooter>
           <button className="help-button" onClick={() => go('help')}>
@@ -363,7 +383,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
               go('welcome');
             }}
           >
-            <UserRound size={18} /> Try profile setup
+            <UserRound size={18} /> Profile setup
           </button>
           <div className="profile">
             <span className="avatar">
@@ -375,7 +395,9 @@ export default function Campus({ initial }: { initial: PilotState }) {
             </span>
             <div>
               <strong>{actors[actor].name}</strong>
-              <small>{actors[actor].title} · Pek Kio pilot</small>
+              <small>
+                {actors[actor].title} · {town}
+              </small>
             </div>
           </div>
         </SidebarFooter>
@@ -392,7 +414,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
           </span>
           <div className="top-actions">
             <span className="pilot-label">
-              <span className="live-dot" /> PEK KIO PILOT
+              <span className="live-dot" /> SINGAPORE
             </span>
             <button
               aria-label="View updates"
@@ -457,12 +479,14 @@ export default function Campus({ initial }: { initial: PilotState }) {
           )}
           {!ready && !error && (
             <output className="loading-line">
-              Opening your saved pilot sandbox…
+              Opening your saved workspace…
             </output>
           )}
           {page === 'profile' ? (
             <ProfilePage
               profile={state.profile}
+              town={town}
+              onTownChange={changeTown}
               run={run}
               disabled={busy || !ready}
               error={error}
@@ -503,13 +527,35 @@ export default function Campus({ initial }: { initial: PilotState }) {
                       <br />
                       <b>neighbours.</b>
                     </span>
-                    <i>PEK KIO · SG</i>
+                    <i>SINGAPORE</i>
                   </div>
                 </div>
                 <div id="activities-list" className="section-heading">
                   <h2>What’s happening around you</h2>
                   <span>{visible.length} gatherings to explore</span>
                 </div>
+                <div className="town-toolbar">
+                  <div>
+                    <span className="town-label">Your town</span>
+                    <TownSelector
+                      value={town}
+                      onChange={changeTown}
+                      disabled={busy || !ready}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    aria-pressed={allTowns}
+                    onClick={() => setAllTowns(!allTowns)}
+                  >
+                    {allTowns ? 'Show my town' : 'Browse all towns'}
+                  </Button>
+                </div>
+                <p className="town-feed-label">
+                  {allTowns
+                    ? 'Showing gatherings across Singapore'
+                    : `Showing gatherings in ${town}`}
+                </p>
                 <div className="search-row">
                   <label className="search-box">
                     <Search size={19} />
@@ -603,7 +649,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
                         <h3>{a.title}</h3>
                         <p>
                           <MapPin size={14} />
-                          {a.location}
+                          {a.location} · {activityTown(a)}
                         </p>
                         <div className="activity-footer">
                           <div className="neighbour-avatars">
@@ -645,24 +691,47 @@ export default function Campus({ initial }: { initial: PilotState }) {
                 {!visible.length && (
                   <div className="empty-state">
                     <Search />
-                    <h3>No gatherings found</h3>
-                    <p>Try a different search or choose another category.</p>
-                    <Button
-                      onClick={() => {
-                        setQuery('');
-                        setCategory('All activities');
-                        setDateFilter('any');
-                      }}
-                    >
-                      Clear filters
-                    </Button>
+                    <h3>
+                      {allTowns
+                        ? 'No gatherings match your filters'
+                        : `No matching gatherings in ${town} yet`}
+                    </h3>
+                    <p>
+                      Browse across Singapore, adjust your filters, or bring
+                      neighbours together with a new activity.
+                    </p>
+                    <div className="empty-actions">
+                      <Button
+                        onClick={() => {
+                          setQuery('');
+                          setCategory('All activities');
+                          setDateFilter('any');
+                        }}
+                      >
+                        Clear filters
+                      </Button>
+                      {!allTowns && (
+                        <Button variant="outline" onClick={browseAll}>
+                          Browse all towns
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        onClick={() => chooseActor('organizer')}
+                      >
+                        Start an activity
+                      </Button>
+                    </div>
                   </div>
                 )}
                 <div className="section-heading">
                   <h2>A good idea starts with interest</h2>
                 </div>
                 {state.activities
-                  .filter((a) => a.status === 'Proposed')
+                  .filter(
+                    (a) =>
+                      a.status === 'Proposed' && (allTowns || inTown(a, town)),
+                  )
                   .map((a) => (
                     <div className="interest-row" key={a.id}>
                       <span className="mini-icon peach">
@@ -788,9 +857,9 @@ export default function Campus({ initial }: { initial: PilotState }) {
           )}
           <footer className="site-footer">
             <span>
-              <Sprout size={15} /> Rooted in Pek Kio. Grown by neighbours.
+              <Sprout size={15} /> Made for Singapore. Grown by neighbours.
             </span>
-            <span>Private pilot sandbox · sample people & credits</span>
+            <span>Kampung Campus</span>
           </footer>
         </div>
       </main>
@@ -818,7 +887,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
                 </p>
                 <p>
                   <MapPin size={17} />
-                  {detail.location}
+                  {detail.location} · {activityTown(detail)}
                 </p>
                 <p>
                   <Users size={17} />

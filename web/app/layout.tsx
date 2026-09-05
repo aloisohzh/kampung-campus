@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     apple: '/brand/kampung-campus.png',
   },
   description:
-    'Find your people in Pek Kio. Join neighbourhood activities, contribute your skills, and turn community moments into everyday rewards.',
+    'Find your people across Singapore. Join neighbourhood activities, contribute your skills, and turn community moments into everyday rewards.',
 };
 
 export default function RootLayout({

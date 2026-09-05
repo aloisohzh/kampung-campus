@@ -1,5 +1,6 @@
 import type { Command } from './model.ts';
 import { ensure } from './rules.ts';
+import { DEFAULT_TOWN, type Town } from './towns.ts';
 
 export type LoginProvider = 'singpass' | 'linkedin' | 'email';
 export type ImportSource = 'skills' | 'credentials';
@@ -45,13 +46,13 @@ export const sourceInfo: Record<
     title: 'Singpass / Myinfo',
     description: 'Verify identity and prefill your profile.',
     detail:
-      'Demonstrates a consented name and neighbourhood import. Live use requires Singpass onboarding and approved Myinfo attributes. It does not verify your skills or qualifications.',
+      'Preview a consented profile import with sample details. No external account is accessed. Live use requires Singpass onboarding and approved Myinfo attributes. Your town is chosen separately; skills and qualifications need their own checks.',
   },
   linkedin: {
     title: 'LinkedIn',
     description: 'Start with your name and email.',
     detail:
-      'Standard LinkedIn sign-in provides basic profile details, with email when available. It does not verify your identity or provide general access to skills and certifications.',
+      'This preview uses sample details; no external account is accessed. Standard LinkedIn sign-in provides basic profile details, with email when available. It does not verify identity or provide general access to skills and certifications.',
   },
   email: {
     title: 'Email link',
@@ -63,13 +64,13 @@ export const sourceInfo: Record<
     title: 'Professional profile import',
     description: 'Bring your skills in together.',
     detail:
-      'Sample of a resident-provided profile export, such as a LinkedIn export. This demo uses prepared records, not a live LinkedIn API or an uploaded file. Skills remain self-reported.',
+      'Preview a resident-provided profile export, such as a LinkedIn export, using prepared records. No live LinkedIn API or uploaded file is connected. Skills remain self-reported.',
   },
   credentials: {
     title: 'Digital credentials',
     description: 'Import certificates and accreditations.',
     detail:
-      'Sample issuer records demonstrate document integrity, issuer, holder and validity checks, as in an OpenCerts-style flow. All issuers, records and verification results here are fictional. A live verifier is not connected.',
+      'Sample issuer records show document integrity, issuer, holder and validity checks, as in an OpenCerts-style flow. All issuers, records and verification results here are fictional. A live verifier is not connected.',
   },
 };
 
@@ -142,13 +143,14 @@ export function updateProfile(
   previous: ResidentProfile | undefined,
   command: Command,
   stamp: string,
+  town: Town = DEFAULT_TOWN,
 ) {
   const profile = previous ? structuredClone(previous) : undefined;
   const source = command.source;
   if (command.type === 'profileLogin') {
     ensure(
       source === 'singpass' || source === 'linkedin' || source === 'email',
-      'Choose a supported demo sign-in method.',
+      'Choose a supported sign-in method.',
     );
     ensure(
       command.consent === true,
@@ -158,13 +160,14 @@ export function updateProfile(
       mode: 'demo',
       name: 'Mei Lin',
       email: 'mei.lin@example.com',
-      neighbourhood: 'Pek Kio',
+      neighbourhood: town,
       login: { provider: source, at: stamp },
       identity: { status: 'Unverified' },
       connections: [],
       records: [],
     };
     next.login = { provider: source, at: stamp };
+    next.neighbourhood = town;
     next.connections = next.connections.filter((c) => c.source !== source);
     next.connections.push({
       source,
@@ -176,10 +179,10 @@ export function updateProfile(
       next.identity = { status: 'Verified · demo', checkedAt: stamp };
     return {
       profile: next,
-      message: `${sourceInfo[source].title} demo completed. Sample profile details are ready.`,
+      message: `${sourceInfo[source].title} preview completed. Your profile details are ready.`,
     };
   }
-  ensure(profile, 'Start with a demo sign-in method.');
+  ensure(profile, 'Start with a sign-in method.');
   if (command.type === 'profileImport') {
     ensure(
       source === 'skills' || source === 'credentials',
@@ -253,7 +256,7 @@ export function updateProfile(
     return {
       profile,
       message:
-        'Source disconnected. Its imported records and consent were removed from your profile. The pilot action audit remains.',
+        'Source disconnected. Its imported records and consent were removed from your profile. The action audit remains.',
     };
   }
   ensure(command.type === 'profileComplete', 'Unknown profile action.');
@@ -265,6 +268,6 @@ export function updateProfile(
   return {
     profile,
     message:
-      'Your demo profile is ready. Explore your neighbourhood and share what you know.',
+      'Your profile is ready. Explore your neighbourhood and share what you know.',
   };
 }

@@ -1,4 +1,5 @@
 import type { ResidentProfile } from './profile.ts';
+import type { Town } from './towns.ts';
 export type Actor =
   | 'resident'
   | 'organizer'
@@ -12,6 +13,7 @@ export type ContributionRole =
   | 'Host'
   | 'Mentor';
 export type Activity = {
+  town?: Town;
   id: string;
   title: string;
   category: string;
@@ -126,6 +128,7 @@ export type Incident = {
   resolution?: string;
 };
 export type PilotState = {
+  town?: Town;
   profile?: ResidentProfile;
   version: 1;
   created: string;

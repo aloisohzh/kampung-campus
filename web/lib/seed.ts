@@ -1,4 +1,5 @@
 import type { PilotState, Activity } from './model.ts';
+import { DEFAULT_TOWN } from './towns.ts';
 export function createSeed(now = new Date()): PilotState {
   const at = (days: number, hour = 9) => {
     const d = new Date(now);
@@ -17,6 +18,7 @@ export function createSeed(now = new Date()): PilotState {
     occupied: number,
     capacity: number,
   ): Activity => ({
+    town: DEFAULT_TOWN,
     id,
     title,
     category,
@@ -136,6 +138,7 @@ export function createSeed(now = new Date()): PilotState {
     ),
   );
   return {
+    town: DEFAULT_TOWN,
     version: 1,
     created: now.toISOString(),
     periodStart: at(-8),
@@ -170,7 +173,7 @@ export function createSeed(now = new Date()): PilotState {
         resident: 'mei',
         role: 'Helper' as const,
         description:
-          'Verified help with setup and welcoming neighbours. Seeded demonstration record.',
+          'Verified help with setup and welcoming neighbours. Example contribution record.',
         evidence: [],
         status: 'Approved' as const,
         created: a.ends,
@@ -191,7 +194,7 @@ export function createSeed(now = new Date()): PilotState {
         stock: 24,
         simulated: false,
         description:
-          'A S$5 voucher for coffee, tea, or a neighbourhood breakfast. Sample merchant for this demonstration.',
+          'A S$5 voucher for coffee, tea, or a neighbourhood breakfast. Example merchant.',
         color: 'peach',
         extra: 0,
         merchant: 'pek-kio-kopi',

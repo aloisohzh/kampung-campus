@@ -1483,13 +1483,69 @@ p {
 .help-copy h3 {
   margin-top: 20px;
 }
-.demo-warning {
+.reward-note {
   font-size: 0.85rem;
-  color: #918269;
+  color: #66563f;
   border-left: 3px solid #dbb97d;
   padding: 12px 16px;
   background: #faf5e8;
   margin-bottom: 22px;
+}
+.town-selector {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  background: #fff;
+  color: #20543b;
+  border-color: #cfd8ca;
+  font-size: 14px;
+  padding: 10px 12px;
+}
+.town-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0 10px;
+}
+.town-toolbar > div {
+  width: min(100%, 260px);
+}
+.town-label {
+  display: block;
+  color: #42593f;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+.town-feed-label {
+  color: #53624f;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.empty-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.profile-town {
+  margin: 20px 0;
+  max-width: 290px;
+}
+.profile-town .quiet-copy {
+  margin: 8px 0 0;
+}
+.welcome-top {
+  flex-wrap: wrap;
+}
+.welcome-top .town-selector {
+  width: 220px;
+  max-width: 100%;
+}
+.profile small {
+  overflow-wrap: anywhere;
 }
 /* Regular controls remain comfortably readable even on narrow screens. */
 .nav-caption,

@@ -2,6 +2,8 @@
 /* oxlint-disable next/no-html-link-for-pages -- Sites owns the native top-level sign-in route. */
 import { useState } from 'react';
 import { Brand } from './brand';
+import { TownSelector } from './town-selector';
+import type { Town } from '@/lib/towns';
 import {
   ArrowRight,
   ArrowLeft,
@@ -47,6 +49,8 @@ import { date, time, type Run } from '@/lib/presentation';
 
 type ProfileProps = {
   profile?: ResidentProfile;
+  town: Town;
+  onTownChange: (town: Town) => void;
   run: Run;
   disabled: boolean;
   error: string;
@@ -77,17 +81,8 @@ function SourceMark({ source }: { source: ProfileSource }) {
     </span>
   );
 }
-function DemoNote() {
-  return (
-    <p className="profile-demo-note">
-      <ShieldCheck size={17} />
-      <span>
-        Private pilot demonstration · All provider connections, personal details
-        and credentials are samples. No external account is accessed.
-      </span>
-    </p>
-  );
-}
+const displayStatus = (status: string) =>
+  status.replace(' · demo', ' · example');
 function Status({ record }: { record: ProfileRecord }) {
   return (
     <span
@@ -100,12 +95,20 @@ function Status({ record }: { record: ProfileRecord }) {
       ) : (
         <CircleAlert size={13} />
       )}
-      {record.status}
+      {displayStatus(record.status)}
     </span>
   );
 }
 
-export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
+export function Welcome({
+  profile,
+  town,
+  onTownChange,
+  run,
+  disabled,
+  error,
+  go,
+}: ProfileProps) {
   const [stage, setStage] = useState<'login' | 'import'>('login');
   const [source, setSource] = useState<ProfileSource | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -129,14 +132,18 @@ export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
         </div>
         <div className="welcome-illustration" aria-hidden="true" />
         <div className="welcome-caption">
-          <span className="live-dot" /> GROWING TOGETHER IN PEK KIO
+          <span className="live-dot" /> GROWING TOGETHER ACROSS SINGAPORE
         </div>
       </section>
       <section className="welcome-form">
         <div className="welcome-top">
-          <span>PEK KIO · PRIVATE PILOT</span>
+          <TownSelector
+            value={town}
+            onChange={onTownChange}
+            disabled={disabled}
+          />
           <button onClick={() => go('discover')}>
-            Explore the demo <ArrowRight size={16} />
+            Explore activities <ArrowRight size={16} />
           </button>
         </div>
         <div className="welcome-inner">
@@ -191,7 +198,6 @@ export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
                 <Fingerprint size={18} /> Singpass can establish identity.
                 Skills and qualifications are checked separately.
               </p>
-              <DemoNote />
             </>
           ) : (
             <>
@@ -213,12 +219,12 @@ export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
                 <div>
                   <strong>{profile?.name}</strong>
                   <small>
-                    {profile?.email} · {profile?.neighbourhood}
+                    {profile?.email} · {town}
                   </small>
                 </div>
                 <span className="record-status">
                   {profile?.identity.status === 'Verified · demo'
-                    ? 'Identity verified · demo'
+                    ? 'Identity verified · example'
                     : 'Identity unverified'}
                 </span>
               </div>
@@ -266,17 +272,16 @@ export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
                     go('profile');
                 }}
               >
-                Create my demo profile <ArrowRight size={18} />
+                Create my profile <ArrowRight size={18} />
               </Button>
               <p className="quiet-copy">
                 Imports are optional. You can connect more sources later.
               </p>
-              <DemoNote />
             </>
           )}
           {disabled && !error && (
             <output className="quiet-copy">
-              Loading or saving your private sandbox…
+              Loading or saving your profile…
             </output>
           )}
           {error && (
@@ -287,7 +292,7 @@ export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
                   href="/signin-with-chatgpt?return_to=%2F%23welcome"
                   target="_top"
                 >
-                  Open private pilot access
+                  Sign in
                 </a>
               )}
             </div>
@@ -314,6 +319,8 @@ export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
 
 export function ProfilePage({
   profile,
+  town,
+  onTownChange,
   run,
   disabled,
   error,
@@ -335,9 +342,8 @@ export function ProfilePage({
           disabled={disabled}
           onClick={() => go('welcome')}
         >
-          Create your demo profile <ArrowRight size={17} />
+          Create your profile <ArrowRight size={17} />
         </Button>
-        <DemoNote />
       </section>
     );
   const skills = profile.records.filter((r) => r.kind === 'Skill');
@@ -359,23 +365,35 @@ export function ProfilePage({
               <div>
                 <h2>{profile.name}</h2>
                 <p>
-                  {profile.neighbourhood} neighbour · {profile.email}
+                  {town} neighbour · {profile.email}
                 </p>
               </div>
               <span
                 className={`record-status ${profile.identity.status === 'Verified · demo' ? 'verified' : 'reported'}`}
               >
                 <ShieldCheck size={15} />
-                Identity {profile.identity.status.toLowerCase()}
+                Identity {displayStatus(profile.identity.status).toLowerCase()}
               </span>
             </div>
             <p className="quiet-copy">
-              Prefilled sample details · Last demo sign-in with{' '}
+              Prefilled sample details · Last sign-in with{' '}
               {sourceInfo[profile.login.provider].title}.{' '}
               {profile.identity.checkedAt
                 ? `Identity checked ${date(profile.identity.checkedAt)}.`
-                : 'Connect Singpass to demonstrate identity verification.'}
+                : 'Preview identity verification through Singpass.'}
             </p>
+            <div className="profile-town">
+              <span className="town-label">Your town</span>
+              <TownSelector
+                value={town}
+                onChange={onTownChange}
+                disabled={disabled}
+                label="Your profile town"
+              />
+              <p className="quiet-copy">
+                Chosen by you to find nearby gatherings.
+              </p>
+            </div>
             <div className="profile-stats">
               <div>
                 <b>{skills.length}</b>
@@ -383,7 +401,7 @@ export function ProfilePage({
               </div>
               <div>
                 <b>{verified}</b>
-                <span>valid demo credentials</span>
+                <span>valid credentials</span>
               </div>
               <div>
                 <b>{profile.connections.length}</b>
@@ -458,7 +476,8 @@ export function ProfilePage({
                     <h3>{r.title}</h3>
                     <p>{r.issuer}</p>
                     <small>
-                      {r.reference} · Expires {r.expires}
+                      {r.reference?.replace(/^DEMO-/, 'EX-')} · Expires{' '}
+                      {r.expires}
                     </small>
                     <p className="credential-check">
                       {r.status === 'Verified · demo'
@@ -559,8 +578,8 @@ export function ProfilePage({
           <h3>Know what “verified” means.</h3>
           <p>
             Identity, self-reported skills and issuer-backed qualifications are
-            different signals. Every badge here shows its source and demo
-            status.
+            different signals. Every badge here shows its source and
+            verification status.
           </p>
           <p>
             Imported credentials do not automatically grant community roles or
@@ -570,7 +589,6 @@ export function ProfilePage({
         <Button variant="outline" onClick={() => go('welcome')}>
           Try another sign-in method <ArrowRight size={15} />
         </Button>
-        <DemoNote />
       </aside>
       {source && (
         <ConnectDialog
@@ -596,9 +614,8 @@ export function ProfilePage({
             </AlertDialogTitle>
             <AlertDialogDescription>
               This removes the connection, its consent and imported records from
-              this profile. Disconnecting Singpass also removes the demo
-              identity badge. Your activity history and pilot action audit
-              remain.
+              this profile. Disconnecting Singpass also removes its example
+              identity badge. Your activity history and action audit remain.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error && (
@@ -638,7 +655,7 @@ function ConnectDialog({
   error,
   close,
   onSaved,
-}: Omit<ProfileProps, 'go'> & {
+}: Omit<ProfileProps, 'go' | 'town' | 'onTownChange'> & {
   source: ProfileSource;
   close: () => void;
   onSaved?: () => void;
@@ -663,7 +680,7 @@ function ConnectDialog({
       <DialogContent className="profile-connect-dialog">
         <div className="connect-heading">
           <SourceMark source={source} />
-          <span className="pill">SAMPLE CONNECTION</span>
+          <span className="pill">CONNECTION PREVIEW</span>
         </div>
         <DialogTitle>
           {importing
@@ -721,10 +738,8 @@ function ConnectDialog({
                 <dd>Mei Lin</dd>
               </div>
               <div>
-                <dt>{source === 'singpass' ? 'Neighbourhood' : 'Email'}</dt>
-                <dd>
-                  {source === 'singpass' ? 'Pek Kio' : 'mei.lin@example.com'}
-                </dd>
+                <dt>Email</dt>
+                <dd>mei.lin@example.com</dd>
               </div>
               <div>
                 <dt>Identity</dt>
@@ -740,7 +755,7 @@ function ConnectDialog({
                 ? 'No NRIC, birth date, Singpass password or real identity document is collected.'
                 : source === 'linkedin'
                   ? 'Skills and credentials can be brought in separately after sign-in.'
-                  : 'Use the sample email link result. No address or code entry is needed in this demo.'}
+                  : 'Use the sample email link result. No address or code entry is needed.'}
             </p>
           </div>
         )}
@@ -753,8 +768,8 @@ function ConnectDialog({
           />
           <span>
             {importing
-              ? 'I consent to saving and rechecking these selected sample records in my private pilot profile.'
-              : 'I consent to using these sample details to create or connect my demo profile.'}
+              ? 'I consent to saving and rechecking these selected sample records in my profile.'
+              : 'I consent to using these sample details to create or connect my profile.'}
           </span>
         </label>
         {error && (
@@ -788,7 +803,7 @@ function ConnectDialog({
                 ? `Save ${selected.length} selected records`
                 : source === 'email'
                   ? 'Use sample email link'
-                  : 'Confirm demo connection'}
+                  : 'Confirm connection'}
             <ArrowRight size={16} />
           </Button>
         </div>

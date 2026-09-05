@@ -51,6 +51,7 @@ import {
   actors,
 } from '@/lib/model';
 import { date, time, type Run } from '@/lib/presentation';
+import { selectedTown, DEFAULT_TOWN } from '@/lib/towns';
 import VoucherCode from './voucher-code';
 import ActionDialog, { type Action, type Field } from './action-dialog';
 
@@ -61,6 +62,11 @@ const note: Field = {
   min: 5,
 };
 const roles = Object.keys(rate);
+// Keep the original saved records intact while updating old sample copy on screen.
+const displayDescription = (value: string) =>
+  value
+    .replace('Seeded demonstration record.', 'Example contribution record.')
+    .replace('Sample merchant for this demonstration.', 'Example merchant.');
 function Status({ value }: { value: string }) {
   return (
     <span className={`status ${value.toLowerCase().replaceAll(' ', '-')}`}>
@@ -121,6 +127,7 @@ export function Workspace({
   chooseActor: (actor: string) => void;
   onActivity: (a: Activity) => void;
 }) {
+  const town = selectedTown(state);
   const [action, setAction] = useState<Action | null>(null),
     [tab, setTab] = useState('All'),
     [voucherCode, setVoucherCode] = useState(''),
@@ -166,7 +173,7 @@ export function Workspace({
     ask(
       'redeem',
       r.title,
-      `${r.description} ${r.cost} credits = S$${r.cost / 10}${r.boost ? ` + S$${r.boost} sponsor boost` : ''}. Funded by the sample pilot reward allocation. ${r.stock} available. Adult pilot residents only. Valid 30 days. No minimum spend. Unused vouchers can be refunded by the operator if fulfilment fails. ${r.simulated ? 'SIMULATED FOR PILOT — no real booking or credit conversion.' : 'DEMO VOUCHER — no real monetary value.'}`,
+      `${displayDescription(r.description)} ${r.cost} credits = S$${r.cost / 10}${r.boost ? ` + S$${r.boost} sponsor boost` : ''}. Funded by the example reward allocation. ${r.stock} available. Adult residents only. Valid 30 days. No minimum spend. Unused vouchers can be refunded by the operator if fulfilment fails. ${r.simulated ? 'No real booking or credit conversion.' : 'Example voucher · no monetary value.'}`,
       { id: r.id },
       [
         ...(r.pathway === 'Community'
@@ -319,9 +326,10 @@ export function Workspace({
   if (wrongRole)
     content = (
       <div className="panel">
-        <h2>Open the {page} demonstration</h2>
+        <h2>Open the {page} workspace</h2>
         <p className="muted">
-          Each view uses a separate sample actor in your private sandbox.
+          Each view follows a different community role. Choose a view to
+          continue.
         </p>
         <Button className="mt-5" onClick={() => chooseActor(page)}>
           Switch to {page} view
@@ -733,7 +741,7 @@ export function Workspace({
                       ? `${c.awarded} credits awarded`
                       : 'Usually reviewed within 24 hours'}
                   </p>
-                  <p>{c.description}</p>
+                  <p>{displayDescription(c.description)}</p>
                   {c.reason && (
                     <p>
                       <strong>Reviewer’s note:</strong> {c.reason}
@@ -814,10 +822,9 @@ export function Workspace({
             <ArrowRight size={15} />
           </Button>
         </div>
-        <div className="demo-warning">
-          All rewards use sample pilot credits. Partner pathways are
-          simulations; no real purchases, bookings, or official credit transfers
-          occur.
+        <div className="reward-note">
+          Rewards use example credits and cannot be spent with real merchants.
+          Partner bookings and official credit transfers are not connected.
         </div>
         <Tabs
           value={
@@ -884,7 +891,7 @@ export function Workspace({
                   <div className="reward-content">
                     <Status
                       value={
-                        r.simulated ? 'Simulated for pilot' : 'Sample voucher'
+                        r.simulated ? 'Connection preview' : 'Sample voucher'
                       }
                     />
                     <h3>{r.title}</h3>
@@ -967,7 +974,7 @@ export function Workspace({
                     </div>
                     <Status value={c.status} />
                   </div>
-                  <p className="muted">{c.description}</p>
+                  <p className="muted">{displayDescription(c.description)}</p>
                   <div className="evidence-list mt-3">
                     {c.evidence.length ? (
                       c.evidence.map((e, i) => (
@@ -1060,16 +1067,14 @@ export function Workspace({
     content = (
       <>
         <div className="section-actions">
-          <p className="muted">
-            Hosted by Farah Ahmad · demonstration organizer
-          </p>
+          <p className="muted">Hosted by Farah Ahmad · Organizer</p>
           <Button
             disabled={busy}
             onClick={() =>
               ask(
                 'propose',
                 'Make room for a good idea',
-                'Start small. Your proposal will go to the operator before neighbours can join.',
+                `Bring neighbours together in ${town}. Your proposal will go to the operator before neighbours can join.`,
                 {},
                 [
                   { name: 'title', label: 'Activity name', min: 5 },
@@ -1094,8 +1099,9 @@ export function Workspace({
                   },
                   {
                     name: 'location',
-                    label: 'Meeting place',
-                    value: 'Pek Kio Community Centre',
+                    label: `Meeting place in ${town}`,
+                    value:
+                      town === DEFAULT_TOWN ? 'Pek Kio Community Centre' : '',
                   },
                   {
                     name: 'starts',
@@ -1167,14 +1173,14 @@ export function Workspace({
                           ask(
                             'completeActivity',
                             'Simulate session completion?',
-                            'This moves the sample gathering to Completed so you can practise attendance and contribution submission. It brings this demo event’s end time forward to now.',
+                            'This ends the gathering now and opens attendance and contribution submission. Its recorded end time will be changed to the current time.',
                             { id: a.id },
                             [],
-                            'Complete demo session',
+                            'Complete session',
                           )
                         }
                       >
-                        Complete demo session
+                        Complete session
                       </Button>
                       {a.occupied > 0 && (
                         <Button
@@ -1295,8 +1301,8 @@ export function Workspace({
               </div>
             ))}
           <p className="caption mt-4">
-            Complete the demo session before marking attendance. A resident can
-            then submit a claim from My activities.
+            Complete the session before marking attendance. A resident can then
+            submit a claim from My activities.
           </p>
         </section>
         <section className="panel">
@@ -1327,7 +1333,7 @@ export function Workspace({
     content = (
       <>
         <div className="section-actions">
-          <p className="muted">S$5,000 sample budget · 8-week Pek Kio pilot</p>
+          <p className="muted">S$5,000 sample budget · 8-week programme</p>
           <Button
             variant="outline"
             disabled={busy}
@@ -1342,7 +1348,7 @@ export function Workspace({
                   : 'New awards, bookings and redemptions will stop. Existing voucher use and refunds stay available.',
                 { paused: !state.paused },
                 [],
-                state.paused ? 'Resume pilot' : 'Pause commitments',
+                state.paused ? 'Resume programme' : 'Pause commitments',
               )
             }
           >
@@ -1354,7 +1360,7 @@ export function Workspace({
           <div className="stat-card">
             <span className="label">Reward backing</span>
             <strong>S$3,000</strong>
-            <p>20,000-credit pilot issuance ceiling</p>
+            <p>20,000-credit programme issuance ceiling</p>
           </div>
           <div className="stat-card">
             <span className="label">Unspent earned value</span>
@@ -1462,7 +1468,7 @@ export function Workspace({
             </div>
           </section>
           <section className="panel">
-            <h2>Pilot participation</h2>
+            <h2>Community participation</h2>
             <div className="row">
               <div className="row-main">
                 <h3>Verified contributions</h3>
@@ -1485,8 +1491,7 @@ export function Workspace({
               <strong className="big-value">{used.length}</strong>
             </div>
             <p className="caption">
-              Demo counts are not population-level evaluation results. Retention
-              and participation gaps require a real pilot cohort.
+              These counts reflect example activity in this workspace.
             </p>
           </section>
         </div>
@@ -1545,7 +1550,7 @@ export function Workspace({
                       ask(
                         'reviewGrant',
                         'Approve this grant?',
-                        'This reserves part of the S$1,500 pilot grant budget.',
+                        'This reserves part of the S$1,500 community grant budget.',
                         { id: g.id, decision: 'approve' },
                         [note],
                         'Approve grant',
@@ -1629,7 +1634,7 @@ export function Workspace({
               <div className="row" key={c.id}>
                 <div className="row-main">
                   <h3>{title(c.activityId)}</h3>
-                  <p>{c.description}</p>
+                  <p>{displayDescription(c.description)}</p>
                 </div>
                 <div className="row-actions">
                   <Button
@@ -1812,8 +1817,8 @@ export function Workspace({
               </div>
             ))}
           <p className="caption mt-5">
-            Demo only. These vouchers do not authorize a real purchase or
-            merchant payment.
+            These example vouchers do not authorize a real purchase or merchant
+            payment.
           </p>
         </section>
       </div>
@@ -1841,11 +1846,11 @@ export function Workspace({
     content = (
       <div className="two-columns">
         <section className="panel help-copy">
-          <h2>Your private pilot, step by step</h2>
+          <h2>How Kampung Campus works</h2>
           <p>
-            This is a working demonstration with sample residents, merchants,
-            credits and activities. Your signed-in sandbox is saved separately
-            from everyone else’s.
+            Profiles, community roles, credits and partner connections currently
+            use example data. Your signed-in workspace is saved separately from
+            everyone else’s.
           </p>
           <div className="steps">
             <div>
@@ -1919,17 +1924,16 @@ export function Workspace({
           </p>
           <h3>What is simulated?</h3>
           <p>
-            ActiveSG, Culture Pass, and learning sponsorships demonstrate
-            possible pathways. No official credits are converted. Every activity
-            photo and named merchant here is illustrative. This sandbox is
+            ActiveSG, Culture Pass, and learning sponsorships show possible
+            pathways. No official credits are converted. Every activity photo
+            and named merchant here is illustrative. This workspace is
             restricted to adult sample residents.
           </p>
           <h3>Your information</h3>
           <p>
-            Only upload evidence you are comfortable including in your private
-            pilot. The demo stores your files and history until the site owner
-            removes them; a live pilot needs an agreed retention policy and
-            resident onboarding process.
+            Your files and history are stored in your workspace until the site
+            owner removes them. Only upload evidence you are comfortable keeping
+            here.
           </p>
         </section>
         <aside>
@@ -1945,7 +1949,7 @@ export function Workspace({
                 ask(
                   'report',
                   'Tell the operator what happened',
-                  'This creates an in-app case in your private sandbox. No email or message is sent outside this demonstration.',
+                  'This creates an in-app case in your workspace. No external email or message is sent.',
                   {},
                   [
                     {
@@ -1976,9 +1980,8 @@ export function Workspace({
           <div className="info-box">
             <strong>Keep the neighbourhood in the loop</strong>
             <p>
-              Switch roles using Pilot workspace in the sidebar. These are
-              sample actors for testing the process, not live account
-              permissions.
+              Switch roles using Workspace in the sidebar. These are sample
+              actors for testing the process, not live account permissions.
             </p>
           </div>
         </aside>
@@ -2006,8 +2009,8 @@ export function Workspace({
             <>
               <DialogTitle>Your neighbourhood voucher</DialogTitle>
               <DialogDescription>
-                Demo only · no monetary value. Show this code to the sample
-                merchant or enter it in Merchant view.
+                Example voucher · no monetary value. Show this code to the
+                sample merchant or enter it in Merchant view.
               </DialogDescription>
               <div className="voucher">
                 <h3>

@@ -25,6 +25,18 @@ async function post(type, actor, payload = {}) {
   return { status: r.status, ...(await r.json()) };
 }
 const first = await get();
+assert.equal(first.state.town, 'Kallang/Whampoa');
+assert.equal(
+  (await post('selectTown', 'resident', { town: 'Tampines' })).status,
+  200,
+);
+assert.equal((await get()).state.town, 'Tampines');
+assert.equal((await get(`${owner}-other`)).state.town, 'Kallang/Whampoa');
+assert.equal(
+  (await post('selectTown', 'resident', { town: 'unsupported' })).status,
+  400,
+);
+assert.equal((await get()).state.town, 'Tampines');
 assert.equal(
   (
     await post('profileLogin', 'resident', {
@@ -44,6 +56,16 @@ assert.equal(
   200,
 );
 assert.equal((await get()).state.profile.identity.status, 'Verified · demo');
+assert.equal((await get()).state.profile.neighbourhood, 'Tampines');
+assert.equal(
+  (await post('selectTown', 'resident', { town: 'Bedok' })).status,
+  200,
+);
+assert.equal((await get()).state.profile.neighbourhood, 'Bedok');
+assert.deepEqual((await get()).state.transactions, first.state.transactions);
+console.log(
+  'PASS: town selection persists, remains owner-isolated, validates input and updates profiles',
+);
 assert.equal(
   (
     await post('profileImport', 'resident', {

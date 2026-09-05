@@ -1,6 +1,7 @@
 import { actors, rate, wallet } from './model.ts';
 import { ensure } from './rules.ts';
 import { updateProfile } from './profile.ts';
+import { isTown, selectedTown } from './towns.ts';
 export { RuleError } from './rules.ts';
 import { RuleError } from './rules.ts';
 import type {
@@ -42,7 +43,7 @@ export function execute(
     command &&
       typeof command.type === 'string' &&
       Object.hasOwn(actors, command.actor),
-    'Choose a valid demonstration role.',
+    'Choose a valid workspace view.',
   );
   ensure(
     typeof command.key === 'string' &&
@@ -107,14 +108,21 @@ export function execute(
       created: stamp,
     });
   };
-  let message = 'Saved to your pilot sandbox.';
+  let message = 'Saved to your workspace.';
   switch (command.type) {
+    case 'selectTown': {
+      ensure(isTown(command.town), 'Choose a town from the Singapore list.');
+      s.town = command.town;
+      if (s.profile) s.profile.neighbourhood = command.town;
+      message = `Your town is now ${command.town}.`;
+      break;
+    }
     case 'profileLogin':
     case 'profileImport':
     case 'profileDisconnect':
     case 'profileComplete': {
       allow('resident');
-      const result = updateProfile(s.profile, command, stamp);
+      const result = updateProfile(s.profile, command, stamp, selectedTown(s));
       s.profile = result.profile;
       message = result.message;
       break;
@@ -252,6 +260,7 @@ export function execute(
       );
       s.activities.push({
         id: crypto.randomUUID(),
+        town: selectedTown(s),
         title,
         category,
         description: textValue(command.description, 'Description', 20),
@@ -333,7 +342,7 @@ export function execute(
       a.ends = stamp;
       if (new Date(a.starts) > now)
         a.starts = new Date(now.getTime() - 7200000).toISOString();
-      message = 'Demo session completed. You can now confirm attendance.';
+      message = 'Session completed. You can now confirm attendance.';
       break;
     }
     case 'openSpot': {
@@ -364,7 +373,7 @@ export function execute(
       );
       ensure(
         a.status === 'Completed',
-        'Complete the demo session before marking attendance.',
+        'Complete the session before marking attendance.',
       );
       const role = command.role as ContributionRole;
       ensure(Object.hasOwn(rate, role), 'Choose a valid contribution role.');
@@ -501,7 +510,7 @@ export function execute(
         const b = wallet(s, c.resident, now.getTime());
         ensure(
           now.getTime() < new Date(s.periodStart).getTime() + 56 * 86400000,
-          'The eight-week pilot earning window has ended.',
+          'The eight-week programme earning window has ended.',
         );
         const amount = Math.min(
           rate[c.role] + Math.min(a.bonus, 10),
