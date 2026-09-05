@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788600570144,
+      "tag": "0000_careless_abomination",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788601132498,
+      "tag": "0001_immutable_audit",
+      "breakpoints": true
+    }
+  ]
+}
