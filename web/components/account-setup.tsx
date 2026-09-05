@@ -112,7 +112,7 @@ export function AccountSetup({
                 <span className="record-status">
                   <ShieldCheck size={14} />
                   {profile.identity.status.startsWith('Verified')
-                    ? 'Identity check preview'
+                    ? 'Identity verification required'
                     : 'Not identity-verified'}
                 </span>
               </div>

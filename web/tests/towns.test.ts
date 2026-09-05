@@ -12,7 +12,7 @@ import type { PilotState } from '../lib/model.ts';
 
 const now = new Date('2026-09-05T09:00:00Z');
 const signedIn = () =>
-  apply(createSeed(now), 'profileLogin', { source: 'singpass', consent: true });
+  apply(createSeed(now), 'profileLogin', { source: 'email', consent: true });
 const apply = (
   state: PilotState,
   type: string,
@@ -20,7 +20,14 @@ const apply = (
 ) =>
   execute(
     state,
-    { type, actor: 'resident', key: crypto.randomUUID(), ...extra },
+    {
+      type,
+      actor: 'resident',
+      key: crypto.randomUUID(),
+      name: 'Mei Lin',
+      email: 'mei@example.invalid',
+      ...extra,
+    },
     now,
   ).state;
 
@@ -43,16 +50,16 @@ void test('old saved activity venues stay in Kallang/Whampoa when choosing anoth
 
 void test('town chosen after sign-in is retained on repeat sign-in', () => {
   let state = apply(signedIn(), 'selectTown', { town: 'Tampines' });
-  state = apply(state, 'profileLogin', { source: 'singpass', consent: true });
+  state = apply(state, 'profileLogin', { source: 'email', consent: true });
   assert.equal(state.profile?.neighbourhood, 'Tampines');
-  state = apply(state, 'profileLogin', { source: 'linkedin', consent: true });
+  state = apply(state, 'profileLogin', { source: 'email', consent: true });
   assert.equal(state.profile?.neighbourhood, 'Tampines');
   assert.equal(selectedTown(state), 'Tampines');
 });
 
 void test('town changes preserve wallet, bookings, contributions and imported verification records', () => {
   let state = apply(createSeed(now), 'profileLogin', {
-    source: 'singpass',
+    source: 'email',
     consent: true,
   });
   state = apply(state, 'profileImport', {

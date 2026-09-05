@@ -110,6 +110,15 @@ export function execute(
   };
   let message = 'Saved to your workspace.';
   switch (command.type) {
+    case 'switchRole': {
+      ensure(
+        typeof command.role === 'string' && Object.hasOwn(actors, command.role),
+        'Choose a valid role.',
+      );
+      s.activeRole = command.role as Actor;
+      message = actors[s.activeRole].title + ' workspace selected.';
+      break;
+    }
     case 'selectTown': {
       ensure(s.profile, 'Sign in before choosing your town.');
       ensure(isTown(command.town), 'Choose a town from the Singapore list.');
@@ -127,7 +136,6 @@ export function execute(
     case 'profileAttach':
     case 'profileRemoveDocument':
     case 'profileComplete': {
-      allow('resident');
       const result = updateProfile(s.profile, command, stamp, selectedTown(s));
       s.profile = result.profile;
       message = result.message;
@@ -235,8 +243,15 @@ export function execute(
       break;
     }
     case 'propose': {
-      allow('organizer');
+      allow('resident', 'organizer');
       active();
+      if (command.plannerId)
+        ensure(
+          typeof command.plannerId === 'string' &&
+            command.plannerId.length <= 80 &&
+            !s.activities.some((a) => a.plannerId === command.plannerId),
+          'This proposal has already been submitted.',
+        );
       const title = textValue(command.title, 'Title', 5, 100);
       const starts = new Date(textValue(command.starts, 'Start date'));
       ensure(
@@ -267,12 +282,23 @@ export function execute(
       s.activities.push({
         id: crypto.randomUUID(),
         town: selectedTown(s),
+        plannerId:
+          typeof command.plannerId === 'string' ? command.plannerId : undefined,
         title,
         category,
         description: textValue(command.description, 'Description', 20),
         location: textValue(command.location, 'Meeting place', 4, 150),
         starts: starts.toISOString(),
-        ends: new Date(starts.getTime() + 7200000).toISOString(),
+        ends: new Date(
+          starts.getTime() +
+            numberValue(
+              command.durationMinutes ?? 120,
+              'Duration in minutes',
+              30,
+              480,
+            ) *
+              60000,
+        ).toISOString(),
         capacity: numberValue(command.capacity, 'Capacity', 2, 50),
         occupied: 0,
         deposit: 2,
@@ -285,14 +311,15 @@ export function execute(
         bonus: 0,
         interests: [],
       });
-      message = 'Your proposal is ready for an operator to review.';
+      message =
+        'Your proposal is ready for an organiser to review and publish.';
       break;
     }
     case 'approveActivity': {
-      allow('operator');
+      allow('organizer', 'operator');
       active();
       const a = activity();
-      ensure(a.organizer !== actor.id, 'You cannot approve your own activity.');
+
       ensure(
         a.status === 'Proposed',
         'This proposal has already been reviewed.',
@@ -302,6 +329,7 @@ export function execute(
         'A future date and safety plan are required.',
       );
       a.status = 'Open';
+      if (command.actor === 'organizer') a.organizer = actor.id;
       message = 'The gathering is approved and open for bookings.';
       break;
     }
@@ -356,13 +384,13 @@ export function execute(
       const a = activity();
       ensure(
         a.organizer === actor.id && a.status === 'Open' && a.occupied > 0,
-        'No sample attendee is available to release.',
+        'No held place is available to release.',
       );
       a.occupied--;
       notify(
         `A place has opened at ${a.title}. The waitlisted resident can now reserve it.`,
       );
-      message = 'One sample attendee cancelled. A place is now available.';
+      message = 'One held place has been released. A place is now available.';
       break;
     }
     case 'attendance': {
@@ -571,7 +599,7 @@ export function execute(
         creditType,
         -r.cost,
         r.simulated ? r.cost : 0,
-        `${r.simulated ? 'Pending simulation' : 'Voucher issued'} · ${r.title}`,
+        `${r.simulated ? 'Awaiting partner fulfilment' : 'Voucher issued'} · ${r.title}`,
         id,
       );
       s.vouchers.unshift({
@@ -587,8 +615,8 @@ export function execute(
         idempotency: command.key,
       });
       message = r.simulated
-        ? 'Sample request pending. Credits are reserved until the operator confirms or releases the simulation. No real partner booking was made.'
-        : 'Your sample voucher is ready in your wallet. It is valid for 30 days and can be used once.';
+        ? 'Your request is pending. Credits are reserved until fulfilment is confirmed or the request is released.'
+        : 'Your voucher is ready in your wallet. It is valid for 30 days and can be used once.';
       break;
     }
     case 'fulfilPartner': {
@@ -605,25 +633,24 @@ export function execute(
           v.creditType,
           0,
           -v.cost,
-          'Partner simulation confirmed',
+          'Partner fulfilment confirmed',
           v.id,
         );
         v.status = 'Active';
-        message =
-          'Sample partner fulfilment confirmed. No external booking or transfer occurred.';
+        message = 'Partner fulfilment recorded.';
       } else {
         ledger(
           'refund',
           v.creditType,
           v.cost,
           -v.cost,
-          'Partner simulation failed · credits released',
+          'Partner fulfilment failed · credits released',
           v.id,
         );
         v.status = 'Refunded';
         s.rewards.find((r) => r.id === v.rewardId)!.stock++;
         message =
-          'Simulation failed. All reserved credits were released to their original balance.';
+          'The request was released. Reserved credits have been returned to their original balance.';
       }
       break;
     }
@@ -646,8 +673,7 @@ export function execute(
       );
       v.status = 'Used';
       v.used = stamp;
-      message =
-        'Voucher accepted. S$5 is recorded for the sample merchant settlement.';
+      message = 'Voucher accepted and recorded for settlement.';
       break;
     }
     case 'refundVoucher': {
@@ -783,7 +809,10 @@ export function execute(
   );
   s.processed.push(command.key);
   // Account preferences remain in the private event audit, not the community feed.
-  if (command.type !== 'selectTown' && !command.type.startsWith('profile'))
+  if (
+    !['selectTown', 'switchRole'].includes(command.type) &&
+    !command.type.startsWith('profile')
+  )
     notify(message);
   return { state: s, message };
 }

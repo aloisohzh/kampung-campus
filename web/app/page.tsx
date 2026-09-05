@@ -1,5 +1,5 @@
 import Campus from '@/components/campus';
-import { createSeed } from '@/lib/seed';
+import { createWorkspace } from '@/lib/seed';
 export default function Home() {
-  return <Campus initial={createSeed()} />;
+  return <Campus initial={createWorkspace()} />;
 }

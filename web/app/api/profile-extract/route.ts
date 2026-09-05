@@ -1,3 +1,4 @@
+import { consumeAi } from '@/lib/ai-server';
 import { env } from 'cloudflare:workers';
 import { ownerOf, loadSpace } from '@/lib/storage';
 import { analyseDocument } from '@/lib/document-ai';
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
       !['CV / résumé', 'Certification', 'Accreditation'].includes(kind)
     )
       return json({ error: 'Review the document type and try again.' }, 400);
+    await consumeAi(owner, 'profile', 20);
     const extraction = await analyseDocument(
       config.OPENAI_API_KEY,
       config.OPENAI_MODEL || 'gpt-4.1-mini',
@@ -80,7 +82,7 @@ export async function POST(request: Request) {
     return json({ extraction, method: 'ai' });
   } catch (e) {
     const status = (e as { status?: number }).status;
-    if (status === 401) return json({ error: 'Please sign in.' }, 401);
+    if (status) return json({ error: (e as Error).message }, status);
     return json(
       {
         error:

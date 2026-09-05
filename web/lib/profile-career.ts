@@ -159,8 +159,8 @@ export function careerEntries(
           ...entry,
           source:
             source === 'linkedin'
-              ? 'LinkedIn connection preview'
-              : 'Singpass connection preview',
+              ? 'Imported professional profile'
+              : 'Imported profile',
         })),
     ),
     ...(profile.documents ?? []).flatMap((doc) =>

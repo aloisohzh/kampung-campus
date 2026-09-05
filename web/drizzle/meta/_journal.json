@@ -15,6 +15,13 @@
       "when": 1788601132498,
       "tag": "0001_immutable_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788615717426,
+      "tag": "0002_steep_microbe",
+      "breakpoints": true
     }
   ]
 }

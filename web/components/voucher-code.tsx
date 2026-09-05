@@ -24,12 +24,7 @@ export default function VoucherCode({ code }: { code: string }) {
   return (
     <div className="voucher-code">
       {src && (
-        <img
-          src={src}
-          width={220}
-          height={220}
-          alt="Scannable code for this sample voucher"
-        />
+        <img src={src} width={220} height={220} alt="Scannable voucher code" />
       )}
       <code>{code}</code>
       <Button

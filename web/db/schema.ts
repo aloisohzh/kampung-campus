@@ -39,3 +39,21 @@ export const uploads = sqliteTable(
   },
   (table) => [index('idx_uploads_owner').on(table.owner)],
 );
+
+export const activityChats = sqliteTable('activity_chats', {
+  owner: text('owner').primaryKey(),
+  chat: text('chat').notNull(),
+  revision: integer('revision').notNull().default(0),
+  lockToken: text('lock_token').notNull(),
+  lockedUntil: integer('locked_until').notNull().default(0),
+});
+export const aiUsage = sqliteTable(
+  'ai_usage',
+  {
+    id: text('id').primaryKey(),
+    owner: text('owner').notNull(),
+    window: integer('window').notNull(),
+    count: integer('count').notNull(),
+  },
+  (table) => [index('idx_ai_usage_owner_window').on(table.owner, table.window)],
+);

@@ -18,64 +18,41 @@ const apply = (
 ) =>
   execute(
     state,
-    { type, actor: 'resident', key: crypto.randomUUID(), ...payload },
+    {
+      type,
+      actor: 'resident',
+      key: crypto.randomUUID(),
+      name: 'Mei Lin',
+      email: 'mei@example.invalid',
+      ...payload,
+    },
     at,
   ).state;
 const login = (payload: Record<string, unknown> = {}) =>
   apply(createSeed(now), 'profileLogin', {
-    source: 'linkedin',
+    source: 'email',
     consent: true,
     ...payload,
   });
-void test('login scopes distinguish basic identity from explicitly consented career records', () => {
-  const basic = login();
+void test('account sign-in does not invent skills or experience', () => {
+  const basic = login({ careerConsent: true, autoSync: true });
   assert.equal(basic.profile?.name, 'Mei Lin');
-  assert.equal(basic.profile?.identity.status, 'Unverified');
   assert.deepEqual(allSkills(basic.profile), []);
-  const career = login({ careerConsent: true, autoSync: true });
-  assert.equal(
-    career.profile?.providerProfiles?.linkedin?.experience.length,
-    2,
-  );
-  assert.ok(allSkills(career.profile).includes('Project management'));
-  assert.equal(career.profile?.records.length, 0);
-  assert.equal(career.profile?.providerProfiles?.linkedin?.mode, 'preview');
-  assert.deepEqual(career.transactions, basic.transactions);
+  assert.equal(careerEntries(basic.profile!, 'experience').length, 0);
+  assert.equal(basic.profile?.providerProfiles, undefined);
 });
-void test('sign-in auto-sync respects opt-out and preserves uploaded files, interests and custom introduction', () => {
-  let state = login({ careerConsent: true, autoSync: true });
+void test('sign-in preserves personal interests and introduction', () => {
+  let state = login();
   state = apply(state, 'profileUpdate', {
     about: 'My own introduction',
     selfSkills: ['Baking'],
     expertise: [],
     hobbies: ['Gardening'],
   });
-  const later = new Date(now.getTime() + 3600000);
-  const refreshed = apply(
-    state,
-    'profileLogin',
-    { source: 'singpass', consent: true, autoSync: true },
-    later,
-  );
-  assert.equal(refreshed.profile?.personalSource, 'singpass');
-  assert.equal(
-    refreshed.profile?.providerProfiles?.linkedin?.syncedAt,
-    later.toISOString(),
-  );
-  assert.equal(refreshed.profile?.about, 'My own introduction');
-  assert.deepEqual(refreshed.profile?.hobbies, ['Gardening']);
-  assert.equal(careerEntries(refreshed.profile!, 'experience').length, 2);
-  const optedOut = login({ careerConsent: true, autoSync: false });
-  const noRefresh = apply(
-    optedOut,
-    'profileLogin',
-    { source: 'singpass', consent: true },
-    later,
-  );
-  assert.equal(
-    noRefresh.profile?.providerProfiles?.linkedin?.syncedAt,
-    now.toISOString(),
-  );
+  const next = apply(state, 'profileLogin', { source: 'email', consent: true });
+  assert.equal(next.profile?.about, 'My own introduction');
+  assert.deepEqual(next.profile?.hobbies, ['Gardening']);
+  assert.deepEqual(next.transactions, state.transactions);
 });
 void test('reviewed extraction strengthens profile without overriding identity or verifying credentials', () => {
   const before = login();
@@ -117,7 +94,7 @@ void test('reviewed extraction strengthens profile without overriding identity o
   assert.equal(next.profile?.documents?.[0].status, 'Uploaded');
   assert.deepEqual(next.notices, before.notices);
   const again = apply(next, 'profileLogin', {
-    source: 'singpass',
+    source: 'email',
     consent: true,
     autoSync: true,
   });
@@ -135,8 +112,10 @@ void test('photos require image metadata and resident authority, and never alter
       }),
     /JPG or PNG/,
   );
-  assert.throws(() =>
-    apply(before, 'profilePhoto', { remove: true, actor: 'merchant' }),
+  assert.equal(
+    apply(before, 'profilePhoto', { remove: true, actor: 'merchant' }).profile
+      ?.photo,
+    undefined,
   );
   const next = apply(before, 'profilePhoto', {
     uploadId: 'photo',

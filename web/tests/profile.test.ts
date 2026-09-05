@@ -12,10 +12,17 @@ const apply = (
 ) =>
   execute(
     state,
-    { type, actor: 'resident', key: crypto.randomUUID(), ...payload },
+    {
+      type,
+      actor: 'resident',
+      key: crypto.randomUUID(),
+      name: 'Mei Lin',
+      email: 'mei@example.invalid',
+      ...payload,
+    },
     now,
   ).state;
-const login = (source = 'singpass') =>
+const login = (source = 'email') =>
   apply(
     apply(createSeed(now), 'profileLogin', { source, consent: true }),
     'selectTown',
@@ -33,44 +40,30 @@ const importFrom = (
     selected: sampleRecords(source, revision).map((r) => r.id),
   });
 
-void test('old saved sandboxes gain a consented demo profile without changing wallet or activity history', () => {
+void test('account creation preserves previous community history and uses account details', () => {
   const old = createSeed(now);
-  assert.equal(old.profile, undefined);
-  const next = apply(old, 'profileLogin', {
-    source: 'singpass',
-    consent: true,
-  });
-  assert.equal(old.profile, undefined);
-  assert.equal(next.profile?.mode, 'demo');
-  assert.equal(next.profile?.identity.status, 'Verified · demo');
+  const next = apply(old, 'profileLogin', { source: 'email', consent: true });
+  assert.equal(next.profile?.mode, 'account');
+  assert.equal(next.profile?.identity.status, 'Unverified');
+  assert.equal(next.profile?.name, 'Mei Lin');
   assert.deepEqual(next.transactions, old.transactions);
-  assert.deepEqual(next.contributions, old.contributions);
   assert.deepEqual(next.registrations, old.registrations);
 });
-void test('LinkedIn and email do not verify identity or import qualifications', () => {
-  for (const source of ['linkedin', 'email']) {
-    const state = login(source);
-    assert.equal(state.profile?.identity.status, 'Unverified');
-    assert.equal(state.profile?.records.length, 0);
-  }
+void test('unconnected providers cannot assert verified identity or import qualifications', () => {
+  for (const source of ['singpass', 'linkedin'])
+    assert.throws(() => login(source), /not connected/);
+  const state = login();
+  assert.equal(state.profile?.identity.status, 'Unverified');
+  assert.equal(state.profile?.records.length, 0);
 });
-void test('consent, supported providers and resident role are enforced on the server', () => {
+void test('account consent and valid fields are required', () => {
   for (const payload of [
-    { source: 'singpass', consent: false },
+    { source: 'email', consent: false },
     { source: 'unknown', consent: true },
-    { source: 'linkedin', consent: true, actor: 'reviewer' },
-  ]) {
+    { source: 'email', consent: true, name: '' },
+    { source: 'email', consent: true, email: '' },
+  ])
     assert.throws(() => apply(createSeed(now), 'profileLogin', payload));
-  }
-  assert.throws(
-    () =>
-      apply(login(), 'profileImport', {
-        source: 'skills',
-        revision: 1,
-        selected: ['skill-1'],
-      }),
-    /Consent/,
-  );
 });
 void test('only selected server-owned records import; client cannot forge verified skills', () => {
   const state = apply(login(), 'profileImport', {
@@ -160,13 +153,16 @@ void test('disconnect revokes consent, removes that source’s records and clear
     state.profile?.connections.some((c) => c.source === 'credentials'),
     false,
   );
-  state = apply(state, 'profileDisconnect', { source: 'singpass' });
+  assert.throws(
+    () => apply(state, 'profileDisconnect', { source: 'singpass' }),
+    /not connected/,
+  );
   assert.equal(state.profile?.identity.status, 'Unverified');
   assert.equal(state.profile?.identity.checkedAt, undefined);
   assert.equal(state.profile?.records.length, 3);
 });
 void test('profile completion needs confirmation and awards no additional starter credits', () => {
-  const state = login('linkedin');
+  const state = login('email');
   assert.throws(() => apply(state, 'profileComplete'), /Confirm/);
   const complete = apply(state, 'profileComplete', { confirm: true });
   assert.equal(complete.profile?.completedAt, now.toISOString());

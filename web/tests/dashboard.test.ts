@@ -18,11 +18,18 @@ const apply = (
 ) =>
   execute(
     state,
-    { type, actor: 'resident', key: crypto.randomUUID(), ...extra },
+    {
+      type,
+      actor: 'resident',
+      key: crypto.randomUUID(),
+      name: 'Mei Lin',
+      email: 'mei@example.invalid',
+      ...extra,
+    },
     now,
   ).state;
 const login = () =>
-  apply(createSeed(now), 'profileLogin', { source: 'singpass', consent: true });
+  apply(createSeed(now), 'profileLogin', { source: 'email', consent: true });
 void test('new residents finish account creation; returning sign-ins land at home', () => {
   assert.equal(accountRoute(undefined, 'discover'), 'welcome');
   const state = login();

@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { createSeed } from './seed';
+import { createWorkspace } from './seed';
 import { execute, RuleError } from './domain';
 import type { PilotState, Command } from './model';
 export function database() {
@@ -28,7 +28,7 @@ export async function loadSpace(owner: string) {
       )
       .bind(
         owner,
-        JSON.stringify(createSeed()),
+        JSON.stringify(createWorkspace()),
         crypto.randomUUID(),
         new Date().toISOString(),
       )
@@ -42,7 +42,26 @@ export async function loadSpace(owner: string) {
   return { state: JSON.parse(row.state) as PilotState, revision: row.revision };
 }
 export async function mutateSpace(owner: string, command: Command) {
+  if (command.type === 'profileImport')
+    throw new RuleError(
+      'Upload your documents in Profile setup to import skills and credentials.',
+    );
+  if (command.type === 'profileLogin' && command.source !== 'email')
+    throw new RuleError('This account provider is not connected yet.');
   const db = database();
+  if (['redeem', 'useVoucher', 'fulfilPartner'].includes(command.type)) {
+    const { state } = await loadSpace(owner);
+    const rewardId =
+      command.type === 'redeem'
+        ? command.id
+        : state.vouchers.find((v) => v.id === command.id)?.rewardId;
+    const reward = state.rewards.find((r) => r.id === rewardId);
+    if (
+      !reward?.enabled &&
+      !(command.type === 'fulfilPartner' && command.result === 'fail')
+    )
+      throw new RuleError('This reward partner is not connected yet.');
+  }
   if (
     command.type === 'profileAttach' ||
     (command.type === 'profilePhoto' && command.remove !== true)
@@ -78,6 +97,14 @@ export async function mutateSpace(owner: string, command: Command) {
   }
   for (let attempt = 0; attempt < 6; attempt++) {
     const before = await loadSpace(owner);
+    if (
+      command.type !== 'switchRole' &&
+      command.actor !== (before.state.activeRole || 'resident')
+    )
+      throw Object.assign(
+        new Error('Your workspace role changed. Refresh and try again.'),
+        { status: 409 },
+      );
     const result = execute(before.state, command);
     if (result.state === before.state)
       return { ...result, revision: before.revision };

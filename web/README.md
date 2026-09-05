@@ -1,84 +1,33 @@
 # Kampung Campus
 
-A working private pilot demonstration of the Pek Kio community platform described in the parent repository’s OpenSpec. Built with React, Vinext, Cloudflare D1 and R2 through Sites.
+A neighbourhood activity platform built with React, Vinext, Sites, Cloudflare D1 and R2.
 
-## Try the complete journey
+## Activity planner
 
-New sandboxes first show the resident sign-in demonstration. Existing sandboxes can open **Try profile setup** in the sidebar or `/#welcome`. Sample connections use the fixed resident Mei Lin; they do not create live provider sessions. The existing contribution-to-voucher journey remains available through **Explore the demo**.
+Resident and Organiser workspaces include **Plan with AI**: natural-language chat, PDF/DOCX/TXT/image attachments, microphone recording with a reviewable transcript, optional read-aloud and a structured draft editor. Residents submit proposals; organisers review the venue, schedule and safety plan before publishing.
 
-1. Start in **Resident** view: Mei Lin has 50 starter credits, 40 earned credits, and a pending helper contribution worth 10 credits.
-2. Choose **Reviewer** in the sidebar. Approve the study sprint contribution with a review note.
-3. Return to **Rewards**, open the kopi reward, and redeem 50 earned credits.
-4. Open **My wallet** and copy the voucher code. It also has a QR code and print view.
-5. Choose **Merchant**, validate the code, and confirm one-time use. Re-entering it reports that it was already used.
-6. Choose **Operator** to inspect outstanding commitments, the ledger, grants, inventory, refunds and merchant settlement value.
+The current conversation and draft persist per account. New activity replaces the current conversation after confirmation; submitted proposals remain. D1 revision checks and a request lease prevent concurrent replies. Proposal IDs prevent duplicate submissions. Limits: 20 replies per conversation; last 12 messages plus current draft sent as context; three files per message, 5 MB each and 10 MB total; voice recordings up to 60 seconds. Reference-document facts are summarised into replies for later turns.
 
-For a new contribution, reserve an activity as the resident, switch to Organizer, choose **Complete demo session**, confirm attendance and a role, then submit the claim from My activities. The explicit completion action advances the sample event so the whole process can be tested immediately.
+## Roles and accounts
 
-## What is implemented
+Sites authenticates users. Account email is supplied by trusted dispatch headers. Profile setup, uploads, photos and support work across all roles. The active workspace role is stored server-side and checked on commands. Navigation never silently changes it.
 
-- Resident sign-in screens for Singpass/Myinfo, LinkedIn and email-link demonstrations; consented profile prefilling, selective bulk sample imports, profile review, source management and persistent sync results. See [the onboarding walkthrough](docs/profile-onboarding.md).
+Every account may explicitly switch to every role, as requested. This is workflow separation, not privileged role assignment. Each account currently owns an isolated community workspace; published activities do not reach other accounts. Public community use requires shared community storage and assigned permissions with account-level separation of duties.
 
-- Activity search by keyword/location, categories and date horizon; details, bookings, refundable deposits, late cancellation, waitlists, release of sample places and interest lists.
-- Activity proposals, safety/access plans, operator approval, organizer cancellation, attendance confirmation and Meet/Make/Grow grant requests and decisions.
-- Contribution descriptions and R2 evidence uploads; independent approval, rejection, requests for additional detail, cancellation and one-time operator appeals.
-- Separate starter, available earned, pending and reserved balances; a permanent contribution record, a four-week earning cap, five-second refresh and CSV history export.
-- Four reward pathways, inventory, full reward terms, sponsor boost/additional payment disclosure, source-preserving refunds, pending partner simulations and failure recovery.
-- UUID/QR vouchers, expiry, merchant ownership, one-time use, merchant history and settlement value.
-- Operator budget and commitment views, reward inventory, pause/resume and concern resolution.
-- Responsive layout, accessible component primitives, keyboard-accessible controls, reduced-motion support, printable vouchers and generated activity imagery.
+New accounts have no fictitious activity or earned-credit history and receive the configured 50 starter credits. Existing saved data is preserved.
 
-## Demo boundary
+## Integrations
 
-This is **not a live resident or merchant system**. Every signed-in Site visitor owns a separate saved sandbox. The role selector switches between fixed sample actors within that sandbox; it is deliberately not a mechanism for assigning real production roles. The platform dispatcher authenticates the visitor; the server separately enforces permitted actions for each sample actor. No email, real merchant payment, official partner API call, cash withdrawal, or credit transfer is performed.
+Configure OPENAI_API_KEY as a protected Sites runtime secret; OPENAI_MODEL defaults to gpt-4.1-mini. Voice uses gpt-4o-mini-transcribe. Keys never reach the browser. Responses use store:false; the application does not retain recorded audio. Documents remain in private R2 storage with ownership checks. Hourly limits per account: 30 chat requests, 15 transcriptions, 20 profile extractions, including failed provider attempts.
 
-Deferred live-pilot work includes resident magic links/assisted onboarding, genuine role provisioning, merchant agreements and payments, live notifications, minor/guardian workflows, finalized retention and post-pilot policies, broader cohort analytics, recurring activity automation, camera scanning, voice/AI assistance and real partner integrations. The original OpenSpec task list remains unmodified so this demonstration is not mistaken for completion of the full production backlog.
+Singpass/Myinfo, LinkedIn, issuer verification, merchant contracts, payments and official benefits are not connected. Provider sign-in and fixture-import API actions are disabled. Unconnected rewards cannot be redeemed or marked fulfilled; refunds and failed-request recovery remain available. Document extraction does not establish issuer verification.
 
-## Persistence and concurrency
+The site remains owner-private. Shared community storage, assigned permissions, operational monitoring, notification delivery, retention policies and real partner integrations remain necessary for a public production service.
 
-D1 stores each small demo sandbox as a versioned aggregate. Commands validate against a fresh snapshot, calculate a candidate result, then commit it using an optimistic compare-and-swap on its revision. The state update and an append-only audit event execute in one D1 batch. Conflicting writes retry against the new revision; unsuccessful commands change nothing. This serializes credit awards, balances, stock and single-use voucher transitions together. It is suitable for the bounded demonstration; the production relational model remains in OpenSpec.
+## Development and validation
 
-The credit ledger is the source of wallet balances. No authoritative data lives in localStorage. Action idempotency keys prevent replay, contribution uniqueness prevents role stacking, and voucher status prevents reuse. Audit events have a unique owner/revision index and database triggers preventing updates or deletes. R2 attachments have D1 ownership metadata and can only be retrieved by their sandbox owner.
+Use Node 24. Run npm ci, apply local migrations with npx wrangler d1 migrations apply DB --local --config wrangler.local.json, then npm run dev.
 
-Sites controls physical D1/R2 resources and authenticated headers. `.openai/hosting.json` contains logical bindings only. `wrangler.local.json` contains placeholder local resources and is never used for cloud provisioning.
+Run node --experimental-strip-types --test tests/*.test.ts, npm run lint and npm run build. For HTTP tests, run npm run start -- --port 3001 --persist-to .wrangler/state, then node tests/api.mjs. The API tests create isolated local accounts and exercise identity, role guards, proposal publication, idempotency, conversations, upload ownership and origin protection.
 
-## Development
-
-Use Node 24 or a compatible Node release supported by the dependency versions.
-
-```sh
-npm ci
-npx wrangler d1 migrations apply DB --local --config wrangler.local.json
-npm run dev
-```
-
-Development runs at the address printed by Vinext. The Sites development middleware supplies a local sample sign-in. Hosted requests require the platform’s authenticated user header and are isolated by that identity. No API keys or runtime secrets are required for this demonstration.
-
-```sh
-node --experimental-strip-types --test tests/domain.test.ts
-npx tsc --noEmit
-npm run build
-```
-
-For HTTP/D1/R2 concurrency tests, run the built Worker locally (rather than the development authentication middleware, which intentionally uses one sample identity):
-
-```sh
-npm run start -- --port 3001
-# In another terminal, set PILOT_TEST_URL=http://localhost:3001
-node tests/api.mjs
-```
-
-The API test refuses non-local URLs and creates isolated test owners. It checks concurrent approval, redemption, merchant use, ownership, cross-origin protection and evidence access. New schema migrations are generated with `npm run db:generate`; applied migrations are immutable.
-
-## Design and generated assets
-
-The visual direction combines forest green, lively garden tones, generous whitespace and documentary-style sample activity photography. The working discovery board is the primary surface, with credit visibility and contribution progression alongside it.
-
-Both photographs were created using **built-in image_gen**, not the API/CLI fallback. They depict fictional sample activities, not actual events. Asset paths and exact generation prompts are recorded in [docs/generated-assets.md](docs/generated-assets.md).
-
-## Spec clarifications applied
-
-- Starter credits may cover approved community benefits as well as deposits, following the credits and rewards specs; one wallet tooltip conflicts with this rule.
-- Insufficient funds reject the entire redemption without a partial debit, following atomicity requirements; one wallet scenario describes an unsafe partial deduction.
-- Credit caps limit awards, never the recording of a valid contribution. Spending credits does not reduce role progression.
-- Unknown simulated partner outcomes remain pending until a human operator explicitly confirms or fails them.
+Applied migrations are immutable; generate additions with npm run db:generate. The versioned D1 aggregate and append-only event audit use optimistic compare-and-swap for atomic ledger/inventory updates. See docs/generated-assets.md for artwork provenance and OpenSpec for the full specification.

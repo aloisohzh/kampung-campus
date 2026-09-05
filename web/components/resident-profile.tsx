@@ -19,7 +19,7 @@ import { ProfileDocuments } from './profile-documents';
 import { TownSelector } from './town-selector';
 import { allSkills } from '@/lib/profile-details';
 import { careerEntries, profileProgress } from '@/lib/profile-career';
-import { sourceInfo, type ResidentProfile } from '@/lib/profile';
+import { type ResidentProfile } from '@/lib/profile';
 import type { Town } from '@/lib/towns';
 import { date, type Run } from '@/lib/presentation';
 
@@ -128,7 +128,7 @@ export function ResidentProfilePage({
               <div>
                 <span>Full name</span>
                 <strong>{profile.name}</strong>
-                <small>{sourceInfo[source].title} · connection preview</small>
+                <small>Account details</small>
               </div>
               <div>
                 <span>Email address</span>
@@ -139,25 +139,14 @@ export function ResidentProfilePage({
               </div>
               <div>
                 <span>Identity status</span>
-                <strong>
-                  {profile.identity.status.startsWith('Verified')
-                    ? 'Identity check preview'
-                    : 'Not identity-verified'}
-                </strong>
-                <small>
-                  {profile.identity.checkedAt
-                    ? 'Checked ' + date(profile.identity.checkedAt)
-                    : 'Email and LinkedIn sign-in do not verify legal identity.'}
-                </small>
+                <strong>Not identity-verified</strong>
+                <small>Identity verification is not connected yet.</small>
               </div>
               <div>
-                <span>Last account sync</span>
+                <span>Last sign-in</span>
                 <strong>{date(details?.syncedAt ?? profile.login.at)}</strong>
                 <small>
-                  <RefreshCw size={14} />{' '}
-                  {profile.connections.some((c) => c.autoSync)
-                    ? 'Auto-sync at sign-in enabled'
-                    : 'Synced during sign-in'}
+                  <RefreshCw size={14} /> Account details saved at sign-in
                 </small>
               </div>
             </div>
@@ -321,8 +310,8 @@ export function ResidentProfilePage({
             <section className="profile-section">
               <h3>Previously imported credentials</h3>
               <p className="quiet-copy">
-                These records came from the credential-verification preview.
-                Uploaded documents below are reviewed separately.
+                Upload supporting documents to request a review of these
+                credentials.
               </p>
               <div className="credential-list">
                 {profile.records
@@ -334,10 +323,7 @@ export function ResidentProfilePage({
                         <h3>{record.title}</h3>
                         <p>{record.issuer}</p>
                         <small>
-                          {record.status.replace(
-                            ' · demo',
-                            ' · verification preview',
-                          )}
+                          Verification required
                           {record.expires ? ' · Expires ' + record.expires : ''}
                         </small>
                       </div>

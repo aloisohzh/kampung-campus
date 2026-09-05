@@ -1,7 +1,7 @@
 'use client';
 /* oxlint-disable next/no-img-element -- User-supplied local provider logo. */
 /* oxlint-disable next/no-html-link-for-pages -- Sites owns the native top-level sign-in route. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Brand } from './brand';
 import { greeting } from '@/lib/profile-details';
 import type { Town } from '@/lib/towns';
@@ -124,7 +124,7 @@ export function Welcome({
                 key={id}
                 className={'provider-button provider-' + id}
                 variant="outline"
-                disabled={disabled}
+                disabled={disabled || id !== 'email'}
                 onClick={() => setSource(id)}
               >
                 <SourceMark source={id} />
@@ -132,10 +132,14 @@ export function Welcome({
                   <strong>
                     Continue with{' '}
                     {id === 'email'
-                      ? 'email'
+                      ? 'your account'
                       : sourceInfo[id].title.split(' /')[0]}
                   </strong>
-                  <small>{sourceInfo[id].description}</small>
+                  <small>
+                    {id === 'email'
+                      ? 'Use your signed-in account details'
+                      : 'Connection not available yet'}
+                  </small>
                 </span>
                 <ArrowRight size={18} />
               </Button>
@@ -209,125 +213,90 @@ export function ConnectDialog({
   close: () => void;
   onSaved?: () => void;
 }) {
-  const existing = profile?.connections.find((c) => c.source === source);
+  const [name, setName] = useState(profile?.name || '');
+  const [email, setEmail] = useState(profile?.email || '');
   const [consent, setConsent] = useState(false);
-  const [autoSync, setAutoSync] = useState(existing?.autoSync ?? true);
-  const [careerConsent, setCareerConsent] = useState(
-    existing?.careerConsent ?? true,
-  );
   const [key] = useState(() => crypto.randomUUID());
+  useEffect(() => {
+    let cancelled = false;
+    void fetch('/api/account')
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        if (cancelled) return;
+        const account = data as { name?: string; email?: string };
+        if (account.name) setName(account.name);
+        if (account.email) setEmail(account.email);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open && !disabled) close();
-      }}
-    >
+    <Dialog open onOpenChange={(open) => !open && !disabled && close()}>
       <DialogContent className="profile-connect-dialog">
-        <div className="connect-heading">
-          <SourceMark source={source} />
-          <span className="pill">CONNECTION PREVIEW</span>
-        </div>
-        <DialogTitle>Continue with {sourceInfo[source].title}</DialogTitle>
-        <DialogDescription>{sourceInfo[source].detail}</DialogDescription>
-        <div className="consent-details">
-          <span className="eyebrow">DETAILS READY TO PREFILL</span>
-          <dl>
-            <div>
-              <dt>Full name</dt>
-              <dd>Mei Lin</dd>
-            </div>
-            <div>
-              <dt>Email</dt>
-              <dd>mei.lin@example.com</dd>
-            </div>
-            <div>
-              <dt>Profile information</dt>
-              <dd>
-                {source === 'singpass'
-                  ? 'Name, email and identity-check preview'
-                  : source === 'linkedin'
-                    ? 'Name, email and professional headline'
-                    : 'Name and email'}
-              </dd>
-            </div>
-          </dl>
-        </div>
-        {source === 'linkedin' && (
-          <label className="profile-consent" htmlFor="career-consent">
-            <Checkbox
-              id="career-consent"
-              checked={careerConsent}
-              disabled={disabled}
-              onCheckedChange={(value) => setCareerConsent(value === true)}
+        <DialogTitle>Welcome to Kampung Campus</DialogTitle>
+        <DialogDescription>
+          Use your signed-in account details, then choose your town and set up
+          your profile.
+        </DialogDescription>
+        <div className="planner-review-grid">
+          <label>
+            Full name
+            <input
+              value={name}
+              maxLength={120}
+              onChange={(e) => setName(e.target.value)}
+              required
             />
-            <span>
-              Include skills & experience
-              <small className="consent-subtext">
-                Prepared career records demonstrate a richer integration.
-                Standard LinkedIn sign-in does not provide this access.
-              </small>
-            </span>
           </label>
-        )}
-        {source !== 'email' && (
-          <label className="profile-consent" htmlFor="auto-sync-consent">
-            <Checkbox
-              id="auto-sync-consent"
-              checked={autoSync}
-              disabled={disabled}
-              onCheckedChange={(value) => setAutoSync(value === true)}
-            />
-            <span>
-              Keep my profile up to date at sign-in
-              <small className="consent-subtext">
-                Refresh consented fields automatically when I sign in. My
-                uploads and personal interests stay unchanged.
-              </small>
-            </span>
+          <label>
+            Account email
+            <input value={email} readOnly aria-label="Account email" />
           </label>
-        )}
+        </div>
         <label className="profile-consent" htmlFor="account-source-consent">
           <Checkbox
             id="account-source-consent"
             checked={consent}
-            disabled={disabled}
             onCheckedChange={(value) => setConsent(value === true)}
           />
           <span>
-            I agree to save these details and the selected sync preferences to
-            my profile.
+            I agree to save these account details in my Kampung Campus profile.
           </span>
         </label>
         {error && (
-          <p role="alert" className="notice error">
+          <p className="notice error" role="alert">
             {error}
           </p>
         )}
         <div className="connect-footer">
-          <Button variant="outline" disabled={disabled} onClick={close}>
+          <Button variant="outline" onClick={close} disabled={disabled}>
             Cancel
           </Button>
           <Button
             className="primary-button"
-            disabled={disabled || !consent}
+            disabled={
+              disabled ||
+              !consent ||
+              name.trim().length < 2 ||
+              source !== 'email'
+            }
             onClick={async () => {
               if (
                 await run('profileLogin', {
-                  source,
+                  source: 'email',
+                  name,
                   consent,
-                  autoSync: source !== 'email' && autoSync,
-                  careerConsent: source === 'linkedin' && careerConsent,
                   key,
                 })
               ) {
-                onSaved?.();
                 close();
+                onSaved?.();
               }
             }}
           >
-            {disabled ? 'Syncing…' : 'Continue'}
-            <ArrowRight size={16} />
+            Continue
           </Button>
         </div>
       </DialogContent>

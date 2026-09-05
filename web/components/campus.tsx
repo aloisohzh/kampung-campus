@@ -24,6 +24,7 @@ import {
   Store,
   ClipboardCheck,
   Settings2,
+  Sparkles,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -71,6 +72,8 @@ import { date, time, type Run } from '@/lib/presentation';
 import { AccountSetup } from './account-setup';
 import { Dashboard, CommunityUpdates } from './dashboard';
 import { accountRoute, neighbourhoodItems } from '@/lib/dashboard';
+import { roleHome, roleRoute, rolePages } from '@/lib/access';
+import { ActivityPlanner } from './activity-planner';
 import { greeting } from '@/lib/profile-details';
 
 const nav = [
@@ -80,6 +83,7 @@ const nav = [
   { id: 'contributions', label: 'My contributions', icon: HeartHandshake },
   { id: 'wallet', label: 'My wallet', icon: Wallet },
   { id: 'rewards', label: 'Rewards', icon: Gift },
+  { id: 'planner', label: 'Plan with AI', icon: Sparkles },
   { id: 'profile', label: 'Profile setup', icon: UserRound },
 ];
 export default function Campus({ initial }: { initial: PilotState }) {
@@ -98,7 +102,7 @@ function CampusContent({ initial }: { initial: PilotState }) {
   const [category, setCategory] = useState('All activities');
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<Activity | null>(null);
-  const [actor, setActor] = useState<Actor>('resident');
+  const actor: Actor = state.activeRole || 'resident';
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -106,7 +110,7 @@ function CampusContent({ initial }: { initial: PilotState }) {
   const [dateFilter, setDateFilter] = useState('any');
   const [allTowns, setAllTowns] = useState(false);
   const [clock, setClock] = useState(() => new Date(initial.created).getTime());
-  const page = accountRoute(state.profile, requestedPage);
+  const page = accountRoute(state.profile, roleRoute(actor, requestedPage));
   const latestRevision = useRef(-1);
   const refresh = useCallback(async () => {
     try {
@@ -268,10 +272,13 @@ function CampusContent({ initial }: { initial: PilotState }) {
         merchant: 'A warm welcome. A simple reward.',
         help: 'A little help goes a long way.',
         updates: 'The latest from your neighbourhood.',
+        planner: 'A good gathering starts with an idea.',
         profile: 'There’s more to you. Bring it along.',
       } as Record<string, string>
     )[page] || 'Welcome to your neighbourhood.';
   const descriptions: Record<string, string> = {
+    planner:
+      'Tell us what you have in mind. Shape it together, then send it for review.',
     dashboard: 'Your plans, your people, and something to look forward to.',
     discover:
       'Small moments. Shared interests. A neighbourhood that feels like home.',
@@ -293,12 +300,14 @@ function CampusContent({ initial }: { initial: PilotState }) {
     profile:
       'Your personal details, experience, skills and supporting documents.',
   };
-  const chooseActor = (v: string | null) => {
-    if (v && v in actors) {
-      setActor(v as Actor);
-      go(v === 'resident' ? 'dashboard' : v);
-      setMessage('');
-      setError('');
+  const chooseActor = async (v: string | null) => {
+    if (
+      v &&
+      Object.hasOwn(actors, v) &&
+      (await run('switchRole', { role: v }))
+    ) {
+      setDetail(null);
+      go(roleHome(v as Actor));
     }
   };
   if (page === 'welcome')
@@ -312,7 +321,6 @@ function CampusContent({ initial }: { initial: PilotState }) {
         disabled={busy || !ready}
         error={error}
         go={(next) => {
-          setActor('resident');
           go(next);
         }}
       />
@@ -326,7 +334,6 @@ function CampusContent({ initial }: { initial: PilotState }) {
         disabled={busy || !ready}
         error={error}
         go={(next) => {
-          setActor('resident');
           go(next);
         }}
       />
@@ -346,52 +353,78 @@ function CampusContent({ initial }: { initial: PilotState }) {
           />
         </SidebarHeader>
         <SidebarContent>
+          <div className="workspace-selector">
+            <span className="workspace-label">Workspace role</span>
+            <Select
+              value={actor}
+              onValueChange={chooseActor}
+              disabled={busy || !ready}
+            >
+              <SelectTrigger aria-label="Workspace role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(actors).map(([id, a]) => (
+                  <SelectItem key={id} value={id}>
+                    {a.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="nav-caption">YOUR NEIGHBOURHOOD</div>
           <SidebarMenu>
-            {nav.map((n) => (
-              <SidebarMenuItem key={n.id}>
-                <SidebarMenuButton
-                  className="nav-button"
-                  isActive={page === n.id}
-                  onClick={() => {
-                    setActor('resident');
-                    go(n.id);
-                  }}
-                >
-                  <n.icon />
-                  <span>{n.label}</span>
-                  {n.id === 'contributions' && balance.pending > 0 && (
-                    <span className="nav-count">
-                      {
-                        state.contributions.filter(
-                          (c) => c.status === 'Pending',
-                        ).length
-                      }
-                    </span>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {nav
+              .filter(
+                (n) => n.id === 'profile' || rolePages[actor].includes(n.id),
+              )
+              .map((n) => (
+                <SidebarMenuItem key={n.id}>
+                  <SidebarMenuButton
+                    className="nav-button"
+                    isActive={page === n.id}
+                    onClick={() => {
+                      go(n.id);
+                    }}
+                  >
+                    <n.icon />
+                    <span>{n.label}</span>
+                    {n.id === 'contributions' && balance.pending > 0 && (
+                      <span className="nav-count">
+                        {
+                          state.contributions.filter(
+                            (c) => c.status === 'Pending',
+                          ).length
+                        }
+                      </span>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
           </SidebarMenu>
-          <div className="nav-caption">COMMUNITY MODULES</div>
+          {actor !== 'resident' && (
+            <div className="nav-caption">YOUR WORKSPACE</div>
+          )}
           <SidebarMenu>
             {[
               { id: 'organizer', label: 'Organiser view', icon: Users },
               { id: 'reviewer', label: 'Reviewer view', icon: ClipboardCheck },
               { id: 'merchant', label: 'Merchant view', icon: Store },
               { id: 'operator', label: 'Operator view', icon: Settings2 },
-            ].map((module) => (
-              <SidebarMenuItem key={module.id}>
-                <SidebarMenuButton
-                  className="nav-button"
-                  isActive={page === module.id}
-                  onClick={() => chooseActor(module.id)}
-                >
-                  <module.icon />
-                  <span>{module.label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            ]
+              .filter((module) => module.id === actor)
+              .map((module) => (
+                <SidebarMenuItem key={module.id}>
+                  <SidebarMenuButton
+                    className="nav-button"
+                    isActive={page === module.id}
+                    onClick={() => go(module.id)}
+                  >
+                    <module.icon />
+                    <span>{module.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -441,7 +474,6 @@ function CampusContent({ initial }: { initial: PilotState }) {
               className="profile-icon-button"
               aria-label="Open Profile setup"
               onClick={() => {
-                setActor('resident');
                 go('profile');
               }}
             >
@@ -457,10 +489,7 @@ function CampusContent({ initial }: { initial: PilotState }) {
               <p>{descriptions[page]}</p>
             </div>
             {page === 'discover' && (
-              <Button
-                className="outline-button"
-                onClick={() => chooseActor('organizer')}
-              >
+              <Button className="outline-button" onClick={() => go('planner')}>
                 <Plus size={17} /> Start an activity
               </Button>
             )}
@@ -498,7 +527,14 @@ function CampusContent({ initial }: { initial: PilotState }) {
               Opening your saved workspace…
             </output>
           )}
-          {page === 'dashboard' ? (
+          {page === 'planner' ? (
+            <ActivityPlanner
+              town={town}
+              actor={actor}
+              run={run}
+              disabled={busy || !ready}
+            />
+          ) : page === 'dashboard' ? (
             <Dashboard
               state={state}
               now={clock}
@@ -943,23 +979,29 @@ function CampusContent({ initial }: { initial: PilotState }) {
               )}
               <Button
                 disabled={
-                  busy || !ready || !!registration || detail.status !== 'Open'
+                  busy ||
+                  !ready ||
+                  actor !== 'resident' ||
+                  !!registration ||
+                  detail.status !== 'Open'
                 }
                 onClick={async () => {
                   if (await run('join', { id: detail.id })) setDetail(null);
                 }}
               >
-                {registration
-                  ? `You’re ${registration.status.toLowerCase()}`
-                  : detail.capacity <=
-                      detail.occupied +
-                        state.registrations.filter(
-                          (r) =>
-                            r.activityId === detail.id &&
-                            ['Confirmed', 'Attended'].includes(r.status),
-                        ).length
-                    ? 'Join the waitlist · no deposit'
-                    : 'Reserve my place'}
+                {actor !== 'resident'
+                  ? 'Switch to Resident to reserve a place'
+                  : registration
+                    ? `You’re ${registration.status.toLowerCase()}`
+                    : detail.capacity <=
+                        detail.occupied +
+                          state.registrations.filter(
+                            (r) =>
+                              r.activityId === detail.id &&
+                              ['Confirmed', 'Attended'].includes(r.status),
+                          ).length
+                      ? 'Join the waitlist · no deposit'
+                      : 'Reserve my place'}
               </Button>
             </>
           )}

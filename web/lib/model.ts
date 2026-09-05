@@ -13,6 +13,7 @@ export type ContributionRole =
   | 'Host'
   | 'Mentor';
 export type Activity = {
+  plannerId?: string;
   town?: Town;
   id: string;
   title: string;
@@ -64,6 +65,7 @@ export type Contribution = {
   appealed?: boolean;
 };
 export type Reward = {
+  enabled?: boolean;
   id: string;
   title: string;
   partner: string;
@@ -128,6 +130,7 @@ export type Incident = {
   resolution?: string;
 };
 export type PilotState = {
+  activeRole?: Actor;
   town?: Town;
   profile?: ResidentProfile;
   version: 1;
@@ -156,7 +159,7 @@ export const actors: Record<
   { id: string; name: string; title: string }
 > = {
   resident: { id: 'mei', name: 'Mei Lin', title: 'Resident' },
-  organizer: { id: 'farah', name: 'Farah Ahmad', title: 'Organizer' },
+  organizer: { id: 'farah', name: 'Farah Ahmad', title: 'Organiser' },
   reviewer: { id: 'daniel', name: 'Daniel Tan', title: 'Reviewer' },
   operator: { id: 'priya', name: 'Priya Nair', title: 'Operator' },
   merchant: { id: 'pek-kio-kopi', name: 'Pek Kio Kopi', title: 'Merchant' },

@@ -1,8 +1,4 @@
-import {
-  providerSnapshot,
-  cleanExtraction,
-  type ProviderSnapshot,
-} from './profile-career.ts';
+import { cleanExtraction, type ProviderSnapshot } from './profile-career.ts';
 import type { Command } from './model.ts';
 import { ensure } from './rules.ts';
 import { DEFAULT_TOWN, type Town } from './towns.ts';
@@ -38,7 +34,7 @@ export type ResidentProfile = {
   expertise?: string[];
   hobbies?: string[];
   documents?: ProfileDocument[];
-  mode: 'demo';
+  mode: 'demo' | 'account';
   name: string;
   email: string;
   neighbourhood: string;
@@ -62,36 +58,31 @@ export const sourceInfo: Record<
 > = {
   singpass: {
     title: 'Singpass / Myinfo',
-    description: 'Verify identity and prefill your profile.',
-    detail:
-      'Preview a consented profile import with sample details. No external account is accessed. Live use requires Singpass onboarding and approved Myinfo attributes. Your town is chosen separately; skills and qualifications need their own checks.',
+    description: 'Identity and account details',
+    detail: 'Singpass connection is not available yet.',
   },
   linkedin: {
     title: 'LinkedIn',
-    description: 'Start with your name and email.',
-    detail:
-      'This preview uses sample details; no external account is accessed. Standard LinkedIn sign-in provides basic profile details, with email when available. It does not verify identity or provide general access to skills and certifications.',
+    description: 'Professional profile details',
+    detail: 'LinkedIn connection is not available yet.',
   },
   email: {
-    title: 'Email link',
-    description: 'A simple alternative to get started.',
-    detail:
-      'This sample email-link journey uses mei.lin@example.com. No email is sent. Email access alone does not establish verified identity.',
+    title: 'Kampung Campus account',
+    description: 'Your signed-in account',
+    detail: 'Your account details are provided by your signed-in session.',
   },
   skills: {
     title: 'Professional profile import',
     description: 'Bring your skills in together.',
-    detail:
-      'Preview a resident-provided profile export, such as a LinkedIn export, using prepared records. No live LinkedIn API or uploaded file is connected. Skills remain self-reported.',
+    detail: 'Upload your professional profile export in CV & credentials.',
   },
   credentials: {
     title: 'Digital credentials',
-    description: 'Import certificates and accreditations.',
+    description: 'Certificates and accreditations',
     detail:
-      'Sample issuer records show document integrity, issuer, holder and validity checks, as in an OpenCerts-style flow. All issuers, records and verification results here are fictional. A live verifier is not connected.',
+      'Upload documents for AI extraction and review. Issuer verification is a separate check.',
   },
 };
-
 // Fixed, server-owned fixtures. Never accept a verification result from a client.
 export function sampleRecords(
   source: ImportSource,
@@ -174,64 +165,36 @@ export function updateProfile(
       command.consent === true,
       'Review and accept the profile data consent first.',
     );
+    ensure(source === 'email', 'This sign-in provider is not connected yet.');
+    ensure(
+      typeof command.name === 'string' &&
+        command.name.trim().length >= 2 &&
+        command.name.length <= 120,
+      'Enter your full name.',
+    );
+    ensure(
+      typeof command.email === 'string' && command.email.includes('@'),
+      'Your signed-in account email is unavailable. Please sign in again.',
+    );
     const next: ResidentProfile = profile ?? {
-      mode: 'demo',
-      name: 'Mei Lin',
-      email: 'mei.lin@example.com',
+      mode: 'account',
+      name: command.name.trim(),
+      email: command.email,
       neighbourhood: town,
-      login: { provider: source, at: stamp },
+      login: { provider: 'email', at: stamp },
       identity: { status: 'Unverified' },
       connections: [],
       records: [],
     };
-    next.login = { provider: source, at: stamp };
-    const previousConnection = next.connections.find(
-      (c) => c.source === source,
-    );
-    next.neighbourhood = town;
-    next.connections = next.connections.filter((c) => c.source !== source);
-    next.connections.push({
-      source,
-      consentAt: stamp,
-      lastSynced: stamp,
-      revision: (previousConnection?.revision ?? 0) + 1,
-      autoSync: command.autoSync === true,
-      careerConsent: source === 'linkedin' && command.careerConsent === true,
-    });
-    next.providerProfiles ??= {};
-    for (const connection of next.connections) {
-      const id = connection.source;
-      if (
-        (id === 'singpass' || id === 'linkedin' || id === 'email') &&
-        (id === source || connection.autoSync)
-      ) {
-        next.providerProfiles[id] = providerSnapshot(
-          id,
-          stamp,
-          connection.careerConsent,
-        );
-        connection.lastSynced = stamp;
-        if (id !== source) connection.revision++;
-      }
-    }
-    const personalSource = next.providerProfiles.singpass
-      ? 'singpass'
-      : next.providerProfiles.linkedin
-        ? 'linkedin'
-        : 'email';
-    const details = next.providerProfiles[personalSource];
-    if (details) {
-      next.name = details.name;
-      next.email = details.email;
-      next.personalSource = personalSource;
-    }
-    if (source === 'singpass')
-      next.identity = { status: 'Verified · demo', checkedAt: stamp };
-    return {
-      profile: next,
-      message: 'Your account details are ready. Profile sync completed.',
-    };
+    next.name = command.name.trim();
+    next.email = command.email;
+    next.mode = 'account';
+    next.login = { provider: 'email', at: stamp };
+    next.personalSource = 'email';
+    next.identity = { status: 'Unverified' };
+    return { profile: next, message: 'Your account details are saved.' };
   }
+
   ensure(profile, 'Start with a sign-in method.');
   if (command.type === 'profilePhoto') {
     if (command.remove === true) {

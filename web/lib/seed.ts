@@ -301,3 +301,19 @@ export function createSeed(now = new Date()): PilotState {
     processed: [],
   };
 }
+
+export function createWorkspace(now = new Date()): PilotState {
+  const state = createSeed(now);
+  state.activities = [];
+  state.registrations = [];
+  state.contributions = [];
+  state.vouchers = [];
+  state.grants = [];
+  state.incidents = [];
+  state.notices = [];
+  state.transactions = state.transactions
+    .filter((t) => t.type === 'starter')
+    .map((t) => ({ ...t, created: now.toISOString() }));
+  state.rewards = state.rewards.map((r) => ({ ...r, enabled: false }));
+  return state;
+}

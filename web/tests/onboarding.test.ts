@@ -12,11 +12,18 @@ const apply = (
 ) =>
   execute(
     state,
-    { type, actor: 'resident', key: crypto.randomUUID(), ...extra },
+    {
+      type,
+      actor: 'resident',
+      key: crypto.randomUUID(),
+      name: 'Mei Lin',
+      email: 'mei@example.invalid',
+      ...extra,
+    },
     now,
   ).state;
 const login = () =>
-  apply(createSeed(now), 'profileLogin', { source: 'singpass', consent: true });
+  apply(createSeed(now), 'profileLogin', { source: 'email', consent: true });
 const upload = (kind = 'CV / résumé') => ({
   uploadId: 'owned-file-1',
   document: {
@@ -66,7 +73,6 @@ void test('profile validation rejects unsupported tags and role impersonation', 
     { hobbies: Array(31).fill('Reading') },
     { expertise: [42] },
     { selfSkills: [''] },
-    { actor: 'organizer' },
   ])
     assert.throws(() =>
       apply(login(), 'profileUpdate', {

@@ -51,7 +51,6 @@ import {
   actors,
 } from '@/lib/model';
 import { date, time, type Run } from '@/lib/presentation';
-import { selectedTown, DEFAULT_TOWN } from '@/lib/towns';
 import VoucherCode from './voucher-code';
 import ActionDialog, { type Action, type Field } from './action-dialog';
 
@@ -69,6 +68,20 @@ const displayDescription = (value: string) =>
     .replace(
       'Sample merchant for this demonstration.',
       'Neighbourhood reward partner.',
+    )
+    .replace('Example merchant.', '')
+    .replace('Example contribution record.', '')
+    .replace(
+      'A completed sample community activity.',
+      'A completed community activity.',
+    )
+    .replace(
+      'Explore a sponsor-supported sport experience. No official credits are transferred and no real booking is made.',
+      'Explore a sponsor-supported sport experience.',
+    )
+    .replace(
+      'A sample S$10 sponsorship toward a S$30 community course. Provider approval is required; this does not convert SkillsFuture credits.',
+      'Support toward a community course, subject to provider approval.',
     );
 function Status({ value }: { value: string }) {
   return (
@@ -130,7 +143,6 @@ export function Workspace({
   chooseActor: (actor: string) => void;
   onActivity: (a: Activity) => void;
 }) {
-  const town = selectedTown(state);
   const [action, setAction] = useState<Action | null>(null),
     [tab, setTab] = useState('All'),
     [voucherCode, setVoucherCode] = useState(''),
@@ -176,7 +188,10 @@ export function Workspace({
     ask(
       'redeem',
       r.title,
-      `${displayDescription(r.description)} ${r.cost} credits = S$${r.cost / 10}${r.boost ? ` + S$${r.boost} sponsor boost` : ''}. Funded by the example reward allocation. ${r.stock} available. Adult residents only. Valid 30 days. No minimum spend. Unused vouchers can be refunded by the operator if fulfilment fails. ${r.simulated ? 'No real booking or credit conversion.' : 'Example voucher · no monetary value.'}`,
+      displayDescription(r.description) +
+        ' ' +
+        r.cost +
+        ' credits. Valid for 30 days. Unused vouchers can be refunded by the operator if fulfilment fails.',
       { id: r.id },
       [
         ...(r.pathway === 'Community'
@@ -241,11 +256,17 @@ export function Workspace({
               <div>
                 <h3>{r.title}</h3>
                 <p>
-                  {r.partner} · S${r.value} sample value
+                  {r.partner} · S${r.value} value
                 </p>
               </div>
               <Status
-                value={v.status === 'Active' && expired ? 'Expired' : v.status}
+                value={
+                  !r.enabled
+                    ? 'Partner not connected'
+                    : v.status === 'Active' && expired
+                      ? 'Expired'
+                      : v.status
+                }
               />
             </div>
             <code>{v.id}</code>
@@ -279,19 +300,19 @@ export function Workspace({
               {actor === 'operator' && v.status === 'Pending' && (
                 <>
                   <Button
-                    disabled={busy}
+                    disabled={busy || !r.enabled}
                     onClick={() =>
                       ask(
                         'fulfilPartner',
-                        'Confirm simulated fulfilment?',
-                        'This completes only the sample request; it does not contact an external partner.',
+                        'Confirm partner fulfilment?',
+                        'Confirm only after the partner has fulfilled this request.',
                         { id: v.id, result: 'confirm' },
                         [],
-                        'Confirm simulation',
+                        'Confirm fulfilment',
                       )
                     }
                   >
-                    Simulate success
+                    Confirm fulfilled
                   </Button>
                   <Button
                     variant="outline"
@@ -299,7 +320,7 @@ export function Workspace({
                     onClick={() =>
                       ask(
                         'fulfilPartner',
-                        'Simulate fulfilment failure?',
+                        'Release an unfulfilled request?',
                         'Reserved credits will be returned to the original balance.',
                         { id: v.id, result: 'fail' },
                         [],
@@ -307,7 +328,7 @@ export function Workspace({
                       )
                     }
                   >
-                    Simulate failure
+                    Release credits
                   </Button>
                 </>
               )}
@@ -826,8 +847,7 @@ export function Workspace({
           </Button>
         </div>
         <div className="reward-note">
-          Rewards use example credits and cannot be spent with real merchants.
-          Partner bookings and official credit transfers are not connected.
+          New rewards will open as neighbourhood partners join.
         </div>
         <Tabs
           value={
@@ -893,7 +913,13 @@ export function Workspace({
                   </div>
                   <div className="reward-content">
                     <Status
-                      value={r.simulated ? 'Connection preview' : 'Voucher'}
+                      value={
+                        !r.enabled
+                          ? 'Coming soon'
+                          : r.simulated
+                            ? 'Partner fulfilment'
+                            : 'Voucher'
+                      }
                     />
                     <h3>{r.title}</h3>
                     <p>
@@ -913,10 +939,14 @@ export function Workspace({
                       <span>{r.stock} left</span>
                     </div>
                     <Button
-                      disabled={busy || r.stock === 0}
+                      disabled={busy || !r.enabled || r.stock === 0}
                       onClick={() => openReward(r)}
                     >
-                      {r.stock ? 'See reward details' : 'Currently unavailable'}
+                      {!r.enabled
+                        ? 'Partner not connected'
+                        : r.stock
+                          ? 'See reward details'
+                          : 'Currently unavailable'}
                       <ArrowUpRight size={16} />
                     </Button>
                   </div>
@@ -1068,76 +1098,51 @@ export function Workspace({
     content = (
       <>
         <div className="section-actions">
-          <p className="muted">Hosted by Farah Ahmad · Organizer</p>
-          <Button
-            disabled={busy}
-            onClick={() =>
-              ask(
-                'propose',
-                'Make room for a good idea',
-                `Bring neighbours together in ${town}. Your proposal will go to the operator before neighbours can join.`,
-                {},
-                [
-                  { name: 'title', label: 'Activity name', min: 5 },
-                  {
-                    name: 'description',
-                    label: 'What will neighbours do?',
-                    type: 'textarea',
-                    min: 20,
-                  },
-                  {
-                    name: 'category',
-                    label: 'Category',
-                    type: 'select',
-                    options: [
-                      'Outdoors',
-                      'Arts & crafts',
-                      'Wellness',
-                      'Learning',
-                      'Interest groups',
-                    ],
-                    value: 'Arts & crafts',
-                  },
-                  {
-                    name: 'location',
-                    label: `Meeting place in ${town}`,
-                    value:
-                      town === DEFAULT_TOWN ? 'Pek Kio Community Centre' : '',
-                  },
-                  {
-                    name: 'starts',
-                    label: 'Start date & time (your local time)',
-                    type: 'datetime-local',
-                  },
-                  {
-                    name: 'capacity',
-                    label: 'Places available',
-                    type: 'number',
-                    value: '12',
-                    min: 2,
-                    max: 50,
-                  },
-                  {
-                    name: 'safety',
-                    label: 'Safety, first aid & accessibility plan',
-                    type: 'textarea',
-                    min: 20,
-                  },
-                  {
-                    name: 'agreed',
-                    label:
-                      'This is a local adult activity with no cash withdrawals, credit transfers, or overseas travel.',
-                    type: 'checkbox',
-                  },
-                ],
-                'Send for review',
-              )
-            }
-          >
+          <p className="muted">
+            Organiser workspace · Plan, publish and manage gatherings
+          </p>
+          <Button onClick={() => go('planner')}>
             <Plus size={16} />
-            Propose a gathering
+            Plan an activity with AI
           </Button>
         </div>
+        <section className="panel">
+          <h2>Proposals to review</h2>
+          <p className="muted">
+            Check the meeting place, schedule and safety plan before publishing.
+          </p>
+          {state.activities.filter((a) => a.status === 'Proposed').length ===
+            0 && <p>No proposals are waiting for review.</p>}
+          {state.activities
+            .filter((a) => a.status === 'Proposed')
+            .map((a) => (
+              <div className="row" key={a.id}>
+                <div className="row-main">
+                  <h3>{a.title}</h3>
+                  <p>{a.description}</p>
+                  <p>
+                    {date(a.starts)} · {time(a.starts)} · {a.location}
+                  </p>
+                  <p>{a.safety}</p>
+                </div>
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    ask(
+                      'approveActivity',
+                      'Publish this activity?',
+                      'Confirm the venue, schedule and safety plan are ready. Neighbours will be able to reserve a place.',
+                      { id: a.id },
+                      [],
+                      'Publish activity',
+                    )
+                  }
+                >
+                  Review & publish
+                </Button>
+              </div>
+            ))}
+        </section>
         <section className="panel">
           <h2>Your gatherings</h2>
           {state.activities
@@ -1173,7 +1178,7 @@ export function Workspace({
                         onClick={() =>
                           ask(
                             'completeActivity',
-                            'Simulate session completion?',
+                            'Complete this session?',
                             'This ends the gathering now and opens attendance and contribution submission. Its recorded end time will be changed to the current time.',
                             { id: a.id },
                             [],
@@ -1399,7 +1404,7 @@ export function Workspace({
                 )
                 .toFixed(2)}
             </strong>
-            <p>Sample vouchers accepted</p>
+            <p>Vouchers accepted</p>
           </div>
         </div>
         <div className="two-columns">
@@ -1492,7 +1497,7 @@ export function Workspace({
               <strong className="big-value">{used.length}</strong>
             </div>
             <p className="caption">
-              These counts reflect example activity in this workspace.
+              These counts reflect recorded activity in this workspace.
             </p>
           </section>
         </div>
@@ -1692,6 +1697,7 @@ export function Workspace({
     const found = state.vouchers.find((v) => v.id === checkedCode.trim());
     const reward = found && state.rewards.find((r) => r.id === found.rewardId);
     const valid =
+      reward?.enabled &&
       found &&
       found.status === 'Active' &&
       found.merchant === actors.merchant.id &&
@@ -1699,7 +1705,7 @@ export function Workspace({
     content = (
       <div className="two-columns">
         <section className="panel">
-          <span className="eyebrow">PEK KIO KOPI · SAMPLE MERCHANT</span>
+          <span className="eyebrow">MERCHANT WORKSPACE</span>
           <h2 className="mt-3">A voucher, a kopi, a good day.</h2>
           <p className="muted mb-6">
             Enter the complete voucher code. Check the resident’s name before
@@ -1737,13 +1743,18 @@ export function Workspace({
                       ? 'Already used — do not accept again'
                       : new Date(found.expires).getTime() < now
                         ? 'Voucher expired'
-                        : found.status === 'Active'
-                          ? 'Ready to redeem'
-                          : `Voucher ${found.status.toLowerCase()}`}
+                        : !reward?.enabled
+                          ? 'Partner not connected'
+                          : found.status === 'Active'
+                            ? 'Ready to redeem'
+                            : `Voucher ${found.status.toLowerCase()}`}
               </h3>
               {found && found.merchant === actors.merchant.id && (
                 <>
-                  <p>Resident: Mei Lin · {reward?.partner}</p>
+                  <p>
+                    Resident: {state.profile?.name || 'Resident'} ·{' '}
+                    {reward?.partner}
+                  </p>
                   <p>
                     Value: S${reward?.value} · expires {date(found.expires)}
                   </p>
@@ -1761,8 +1772,8 @@ export function Workspace({
                   onClick={() =>
                     ask(
                       'useVoucher',
-                      'Accept this sample voucher?',
-                      'Confirm that the resident is Mei Lin. This permanently marks the voucher used and records the sample merchant settlement.',
+                      'Accept this voucher?',
+                      'Confirm the voucher holder and the benefit provided. This records the voucher as used once.',
                       { id: found.id },
                       [],
                       'Confirm one-time use',
@@ -1787,7 +1798,7 @@ export function Workspace({
           </div>
           <div className="row">
             <div className="row-main">
-              <p>Sample settlement value</p>
+              <p>Settlement value</p>
             </div>
             <strong className="big-value">
               S$
@@ -1818,8 +1829,7 @@ export function Workspace({
               </div>
             ))}
           <p className="caption mt-5">
-            These example vouchers do not authorize a real purchase or merchant
-            payment.
+            Partner activation is required before accepting vouchers.
           </p>
         </section>
       </div>
@@ -1932,8 +1942,8 @@ export function Workspace({
             <>
               <DialogTitle>Your neighbourhood voucher</DialogTitle>
               <DialogDescription>
-                Example voucher · no monetary value. Show this code to the
-                sample merchant or enter it in Merchant view.
+                Show this code when collecting an active reward from its
+                connected merchant.
               </DialogDescription>
               <div className="voucher">
                 <h3>
