@@ -1,6 +1,7 @@
 'use client';
 /* oxlint-disable next/no-html-link-for-pages -- Sites owns the native top-level sign-in route. */
 import { useState } from 'react';
+import { Brand } from './brand';
 import {
   ArrowRight,
   ArrowLeft,
@@ -112,8 +113,7 @@ export function Welcome({ profile, run, disabled, error, go }: ProfileProps) {
     <main className="welcome-shell">
       <section className="welcome-story">
         <div className="welcome-brand">
-          <Sprout size={31} />
-          kampung campus.
+          <Brand />
         </div>
         <div className="welcome-story-copy">
           <span className="eyebrow">A NEIGHBOURHOOD FULL OF POSSIBILITY</span>

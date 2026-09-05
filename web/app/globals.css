@@ -134,33 +134,38 @@ body {
   }
 }
 
-/* Kampung Campus: garden greens, clear paper surfaces, generous human-scale type. */
+/* Brand direction from the supplied pitch deck: cream paper, forest green,
+   rounded bold headings and restrained terracotta accents. */
 :root,
 .dark {
-  --background: #f8faf8;
-  --foreground: #233b30;
-  --card: #fff;
-  --card-foreground: #233b30;
-  --popover: #fff;
-  --popover-foreground: #233b30;
-  --primary: #205640;
+  --brand-cream: #fff4df;
+  --brand-forest: #20543b;
+  --brand-terracotta: #ad542e;
+  --brand-paper: #fffdf8;
+  --background: #fffaf2;
+  --foreground: #254633;
+  --card: var(--brand-paper);
+  --card-foreground: #254633;
+  --popover: var(--brand-paper);
+  --popover-foreground: #254633;
+  --primary: var(--brand-forest);
   --primary-foreground: #fff;
-  --secondary: #eff4ed;
+  --secondary: #f5eedf;
   --secondary-foreground: #234333;
-  --muted: #edf2ed;
+  --muted: #f5f0e6;
   --muted-foreground: #69766d;
-  --accent: #e9f1e6;
+  --accent: #e9efdf;
   --accent-foreground: #224e38;
-  --border: #e1e8df;
-  --input: #dce4db;
+  --border: #e7dfcf;
+  --input: #ded7c7;
   --ring: #4d7959;
-  --sidebar: #fff;
+  --sidebar: #fff8e9;
   --sidebar-foreground: #526158;
   --sidebar-accent: #eaf1e5;
   --sidebar-accent-foreground: #214d37;
-  --sidebar-primary: #205640;
+  --sidebar-primary: var(--brand-forest);
   --sidebar-primary-foreground: #fff;
-  --sidebar-border: #e4e9e1;
+  --sidebar-border: #e7dfcf;
   --radius: 0.75rem;
   --destructive: #b63838;
 }
@@ -199,7 +204,8 @@ p {
 h1,
 h2,
 h3 {
-  color: #243d30;
+  color: var(--brand-forest);
+  font-family: var(--font-brand), var(--font-geist-sans), sans-serif;
 }
 h2 {
   font-size: 1.2rem;
@@ -215,7 +221,7 @@ p {
   line-height: 1.65;
 }
 .campus-sidebar [data-slot='sidebar-inner'] {
-  background: #fff;
+  background: var(--sidebar);
 }
 .campus-sidebar [data-slot='sidebar-header'] {
   padding: 30px 23px 23px;
@@ -233,26 +239,49 @@ p {
   align-items: center;
   gap: 12px;
   text-decoration: none;
-  color: #214d37;
+  color: var(--brand-forest);
   font-size: 1.6rem;
-  font-weight: 750;
+  font-weight: 850;
   line-height: 0.98;
-  letter-spacing: -0.07em;
+  letter-spacing: -0.045em;
 }
-.brand-symbol {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 51px;
-  border-radius: 24px 24px 9px 9px;
-  background: #e3ebce;
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  font-family: var(--font-brand), var(--font-geist-sans), sans-serif;
 }
-.brand-symbol svg {
-  width: 29px;
-  height: 29px;
+.campus-logo {
+  display: block;
+  flex-shrink: 0;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
 }
-.brand-dot {
-  color: #d77745;
+.brand-name {
+  font-weight: 850;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+.brand-stacked .brand-name > span {
+  display: block;
+}
+.welcome-brand .campus-logo {
+  width: 68px;
+  height: 68px;
+}
+.mobile-brand .campus-logo {
+  width: 36px;
+  height: 36px;
+}
+.mobile-brand .brand-lockup {
+  gap: 5px;
+}
+.mobile-brand .brand-name {
+  font-size: 1rem;
 }
 .neighbourhood {
   display: flex;
@@ -301,8 +330,8 @@ p {
   padding: 1px 6px;
 }
 .sidebar-invite {
-  border: 1px solid #e6eadf;
-  background: #f8faf4;
+  border: 1px solid #e7dfcf;
+  background: var(--brand-cream);
   padding: 18px 15px;
   border-radius: 12px;
   margin: 34px 2px 25px;
@@ -415,12 +444,12 @@ p {
 }
 .topbar {
   height: 76px;
-  border-bottom: 1px solid #e3e9e0;
+  border-bottom: 1px solid #e7dfcf;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 38px;
-  background: #fff;
+  background: var(--brand-paper);
 }
 .breadcrumb {
   font-size: 0.79rem;
@@ -476,15 +505,15 @@ p {
   margin-bottom: 29px;
 }
 .eyebrow {
-  color: #748368;
+  color: var(--brand-terracotta);
   font-size: 0.67rem;
   font-weight: 600;
   letter-spacing: 0.14em;
 }
 .heading h1 {
   font-size: clamp(1.8rem, 2.5vw, 2.65rem);
-  font-weight: 650;
-  letter-spacing: -0.055em;
+  font-weight: 850;
+  letter-spacing: -0.045em;
   line-height: 1.18;
   margin: 10px 0;
 }
@@ -509,8 +538,8 @@ p {
 }
 .feature-banner {
   border-radius: 13px;
-  background: #244e3a;
-  color: #eaf3e0;
+  background: var(--brand-forest);
+  color: var(--brand-cream);
   padding: 27px 28px;
   display: flex;
   justify-content: space-between;
@@ -529,22 +558,22 @@ p {
   width: fit-content;
 }
 .pill.light {
-  background: #42644c;
-  color: #e0ecd0;
+  background: #396c50;
+  color: var(--brand-cream);
   font-size: 0.55rem;
   letter-spacing: 0.08em;
   padding: 5px 8px;
 }
 .feature-banner h2 {
   font-size: clamp(1.6rem, 2.1vw, 2.3rem);
-  color: #f7faef;
-  font-weight: 550;
+  color: var(--brand-cream);
+  font-weight: 800;
   line-height: 1.18;
   letter-spacing: -0.04em;
   margin: 14px 0 11px;
 }
 .feature-banner p {
-  color: #bfcebd;
+  color: #e1e7d3;
   font-size: 0.79rem;
   line-height: 1.75;
 }
@@ -552,7 +581,7 @@ p {
   display: flex;
   align-items: center;
   gap: 21px;
-  color: #dcebb6;
+  color: #f3cfa4;
   font-size: 0.76rem;
   font-weight: 550;
   margin-top: 18px;
@@ -563,7 +592,7 @@ p {
   align-items: center;
   justify-content: center;
   transform: rotate(-9deg);
-  color: #daebaa;
+  color: #f3cfa4;
   padding: 4px 8px 0 0;
   flex: none;
 }

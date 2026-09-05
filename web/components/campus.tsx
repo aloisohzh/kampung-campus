@@ -58,6 +58,7 @@ import {
 } from '@/lib/model';
 import { Workspace } from './workspace';
 import { Welcome, ProfilePage } from './profile';
+import { Brand } from './brand';
 import { date, time, type Run } from '@/lib/presentation';
 
 const nav = [
@@ -284,14 +285,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
       <Sidebar className="campus-sidebar">
         <SidebarHeader>
           <a className="brand" href="/">
-            <span className="brand-symbol">
-              <Sprout />
-            </span>
-            <span>
-              kampung
-              <br />
-              campus<span className="brand-dot">.</span>
-            </span>
+            <Brand stacked />
           </a>
           <div className="neighbourhood">
             <MapPin size={15} /> Pek Kio, Singapore{' '}
@@ -390,7 +384,7 @@ export default function Campus({ initial }: { initial: PilotState }) {
         <header className="topbar">
           <div className="mobile-brand">
             <SidebarTrigger />
-            <strong>kampung campus.</strong>
+            <Brand />
           </div>
           <span className="breadcrumb">
             Your neighbourhood <span>/</span>{' '}

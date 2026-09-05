@@ -2,8 +2,8 @@
   display: grid;
   grid-template-columns: 46% 54%;
   min-height: 100dvh;
-  background: #fafbf7;
-  color: #233b30;
+  background: var(--brand-paper);
+  color: var(--brand-forest);
 }
 .welcome-story {
   min-height: 100dvh;
@@ -12,14 +12,16 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 44px 9% 35px;
-  color: white;
+  color: var(--brand-forest);
+  background-color: var(--brand-cream);
   background:
     linear-gradient(
       180deg,
-      rgba(16, 48, 35, 0.82) 0%,
-      rgba(16, 48, 35, 0.75) 46%,
-      rgba(16, 48, 35, 0.12) 76%,
-      rgba(16, 48, 35, 0.7) 100%
+      #fff4df 0%,
+      #fff4df 46%,
+      rgba(255, 244, 223, 0.94) 55%,
+      rgba(255, 244, 223, 0.1) 80%,
+      rgba(255, 244, 223, 0.92) 100%
     ),
     url('/images/community-garden.png') center 66% / cover;
 }
@@ -32,23 +34,24 @@
   letter-spacing: -1.1px;
 }
 .welcome-story-copy {
-  margin-top: 65px;
+  margin-top: 46px;
   margin-bottom: auto;
 }
 .welcome-story-copy .eyebrow {
-  color: #d5e9a0;
+  color: var(--brand-terracotta);
   letter-spacing: 1.6px;
   font-size: 10px;
 }
 .welcome-story h1 {
   font-size: clamp(38px, 4.2vw, 66px);
-  font-weight: 570;
+  font-weight: 900;
+  color: var(--brand-forest);
   line-height: 1.08;
   letter-spacing: -2.5px;
   margin: 23px 0;
 }
 .welcome-story p {
-  color: #f1f2e9;
+  color: #49694b;
   font-size: 16px;
   line-height: 1.8;
 }
@@ -58,11 +61,15 @@
   align-items: center;
   margin-top: 230px;
   font-size: 10px;
+  padding: 10px 12px;
+  width: fit-content;
+  border-radius: 7px;
+  background: rgba(255, 244, 223, 0.93);
   font-weight: 600;
   letter-spacing: 1.7px;
 }
 .welcome-caption .live-dot {
-  background: #d5e9a0;
+  background: var(--brand-terracotta);
 }
 .welcome-form {
   padding: 30px 7%;
@@ -124,12 +131,12 @@
   display: block;
   font-size: 10px;
   letter-spacing: 1.8px;
-  color: #75885b;
+  color: var(--brand-terracotta);
 }
 .welcome-inner h2 {
   font-size: clamp(30px, 3.2vw, 46px);
   line-height: 1.13;
-  font-weight: 600;
+  font-weight: 850;
   letter-spacing: -1.7px;
   margin: 17px 0;
 }
@@ -329,10 +336,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #dde6c8;
+  background: var(--brand-cream);
   padding: 25px 32px;
   height: 115px;
-  color: #547343;
+  color: var(--brand-forest);
 }
 .profile-cover > span {
   font-size: 9px;
@@ -402,7 +409,7 @@
 .profile-section .eyebrow {
   font-size: 9px;
   letter-spacing: 1.3px;
-  color: #819069;
+  color: var(--brand-terracotta);
 }
 .profile-section-heading {
   display: flex;
@@ -588,7 +595,7 @@
   display: flex;
   align-items: center;
   gap: 17px;
-  background: #e8eedc;
+  background: var(--brand-cream);
   padding: 22px;
   border-radius: 12px;
   flex-wrap: wrap;
@@ -774,7 +781,7 @@
   .welcome-story {
     min-height: 0;
     padding: 24px;
-    background-position: center 43%;
+    background: var(--brand-cream);
   }
   .welcome-brand {
     font-size: 21px;
