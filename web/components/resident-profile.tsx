@@ -1,4 +1,5 @@
 'use client';
+/* oxlint-disable next/no-html-link-for-pages -- Sites sign-out requires native top-level navigation. */
 import { useRef, useState } from 'react';
 import {
   Camera,
@@ -9,8 +10,9 @@ import {
   Mail,
   RefreshCw,
   UserRound,
+  LogOut,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { ProfileAvatar } from './profile-avatar';
@@ -334,6 +336,28 @@ export function ResidentProfilePage({
           )}
         </TabsContent>
       </Tabs>
+      <section
+        className="profile-section profile-account-actions"
+        aria-labelledby="profile-account-heading"
+      >
+        <div>
+          <h2 id="profile-account-heading">Account</h2>
+          <p className="quiet-copy">
+            Sign out of Kampung Campus on this browser.
+          </p>
+        </div>
+        <a
+          className={buttonVariants({
+            variant: 'outline',
+            className: 'profile-signout',
+          })}
+          href="/signout-with-chatgpt?return_to=%2F%23welcome"
+          target="_top"
+        >
+          <LogOut size={16} aria-hidden="true" />
+          Sign out
+        </a>
+      </section>
     </div>
   );
 }

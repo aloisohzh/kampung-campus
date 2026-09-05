@@ -19,7 +19,7 @@ import {
   Leaf,
   CircleHelp,
   Check,
-  UserRound,
+  ChevronRight,
   House,
   Store,
   ClipboardCheck,
@@ -84,7 +84,6 @@ const nav = [
   { id: 'wallet', label: 'My wallet', icon: Wallet },
   { id: 'rewards', label: 'Rewards', icon: Gift },
   { id: 'planner', label: 'Plan with AI', icon: Sparkles },
-  { id: 'profile', label: 'Profile setup', icon: UserRound },
 ];
 export default function Campus({ initial }: { initial: PilotState }) {
   return (
@@ -375,9 +374,7 @@ function CampusContent({ initial }: { initial: PilotState }) {
           <div className="nav-caption">YOUR NEIGHBOURHOOD</div>
           <SidebarMenu>
             {nav
-              .filter(
-                (n) => n.id === 'profile' || rolePages[actor].includes(n.id),
-              )
+              .filter((n) => rolePages[actor].includes(n.id))
               .map((n) => (
                 <SidebarMenuItem key={n.id}>
                   <SidebarMenuButton
@@ -432,20 +429,21 @@ function CampusContent({ initial }: { initial: PilotState }) {
             <CircleHelp size={18} /> Help & support
           </button>
 
-          <a
-            className="help-button"
-            href="/signout-with-chatgpt?return_to=%2F%23welcome"
-            target="_top"
+          <button
+            type="button"
+            className="profile account-button"
+            aria-label="Open Profile setup"
+            aria-current={page === 'profile' ? 'page' : undefined}
+            title="Profile setup"
+            onClick={() => go('profile')}
           >
-            Sign out
-          </a>
-          <div className="profile">
             <ProfileAvatar profile={state.profile} />
-            <div>
+            <span className="account-label">
               <strong>{state.profile?.name || actors.resident.name}</strong>
               <small>{town}</small>
-            </div>
-          </div>
+            </span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
         </SidebarFooter>
       </Sidebar>
       <main className="campus-main">
@@ -456,7 +454,9 @@ function CampusContent({ initial }: { initial: PilotState }) {
           </div>
           <span className="breadcrumb">
             Your neighbourhood <span>/</span>{' '}
-            {nav.find((n) => n.id === page)?.label || actors[actor].title}
+            {page === 'profile'
+              ? 'Profile setup'
+              : nav.find((n) => n.id === page)?.label || actors[actor].title}
           </span>
           <div className="top-actions">
             <span className="pilot-label">
