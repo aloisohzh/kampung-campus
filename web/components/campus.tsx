@@ -21,6 +21,9 @@ import {
   Check,
   UserRound,
   House,
+  Store,
+  ClipboardCheck,
+  Settings2,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -60,6 +63,7 @@ import {
 } from '@/lib/model';
 import { Workspace } from './workspace';
 import { Welcome, ProfilePage } from './profile';
+import { ProfileAvatar } from './profile-avatar';
 import { Brand } from './brand';
 import { TownSelector } from './town-selector';
 import { selectedTown, inTown, activityTown, type Town } from '@/lib/towns';
@@ -76,7 +80,7 @@ const nav = [
   { id: 'contributions', label: 'My contributions', icon: HeartHandshake },
   { id: 'wallet', label: 'My wallet', icon: Wallet },
   { id: 'rewards', label: 'Rewards', icon: Gift },
-  { id: 'profile', label: 'My profile', icon: UserRound },
+  { id: 'profile', label: 'Profile setup', icon: UserRound },
 ];
 export default function Campus({ initial }: { initial: PilotState }) {
   return (
@@ -284,10 +288,10 @@ function CampusContent({ initial }: { initial: PilotState }) {
       'Check the evidence, apply the published rules, and record your decision.',
     operator:
       'Keep an eye on funding, commitments, and the people behind the community.',
-    merchant: 'Validate a sample voucher and confirm its one-time use.',
+    merchant: 'Validate a voucher and confirm its one-time use.',
     help: 'How Kampung Campus works, and where to go if something isn’t right.',
     profile:
-      'Your skills, your credentials, and the connections that help tell your story.',
+      'Your personal details, experience, skills and supporting documents.',
   };
   const chooseActor = (v: string | null) => {
     if (v && v in actors) {
@@ -369,64 +373,44 @@ function CampusContent({ initial }: { initial: PilotState }) {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-          <div className="sidebar-invite">
-            <span className="mini-icon">
-              <Users />
-            </span>
-            <h3>
-              Good at something?
-              <br />
-              Pass it on.
-            </h3>
-            <p>Every great gathering starts with a neighbour like you.</p>
-            <button onClick={() => chooseActor('organizer')}>
-              Start an activity <ArrowUpRight size={17} />
-            </button>
-          </div>
-          <div className="nav-caption">WORKSPACE</div>
-          <Select value={actor} onValueChange={chooseActor}>
-            <SelectTrigger
-              className="role-select"
-              aria-label="Choose workspace view"
-            >
-              <SelectValue>{actors[actor].title} view</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(actors).map(([id, a]) => (
-                <SelectItem key={id} value={id}>
-                  {a.title} · {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="role-hint">Follow each step from a different role.</p>
+          <div className="nav-caption">COMMUNITY MODULES</div>
+          <SidebarMenu>
+            {[
+              { id: 'organizer', label: 'Organiser view', icon: Users },
+              { id: 'reviewer', label: 'Reviewer view', icon: ClipboardCheck },
+              { id: 'merchant', label: 'Merchant view', icon: Store },
+              { id: 'operator', label: 'Operator view', icon: Settings2 },
+            ].map((module) => (
+              <SidebarMenuItem key={module.id}>
+                <SidebarMenuButton
+                  className="nav-button"
+                  isActive={page === module.id}
+                  onClick={() => chooseActor(module.id)}
+                >
+                  <module.icon />
+                  <span>{module.label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
           <button className="help-button" onClick={() => go('help')}>
-            <CircleHelp size={18} /> A little help?
+            <CircleHelp size={18} /> Help & support
           </button>
-          <button
+
+          <a
             className="help-button"
-            onClick={() => {
-              setActor('resident');
-              go('welcome');
-            }}
+            href="/signout-with-chatgpt?return_to=%2F%23welcome"
+            target="_top"
           >
-            <UserRound size={18} /> Sign-in options
-          </button>
+            Sign out
+          </a>
           <div className="profile">
-            <span className="avatar">
-              {actors[actor].name
-                .split(' ')
-                .map((p) => p[0])
-                .slice(0, 2)
-                .join('')}
-            </span>
+            <ProfileAvatar profile={state.profile} />
             <div>
-              <strong>{actors[actor].name}</strong>
-              <small>
-                {actors[actor].title} · {town}
-              </small>
+              <strong>{state.profile?.name || actors.resident.name}</strong>
+              <small>{town}</small>
             </div>
           </div>
         </SidebarFooter>
@@ -453,13 +437,16 @@ function CampusContent({ initial }: { initial: PilotState }) {
               <Bell size={19} />
               {neighbourhoodItems(state, clock).length > 0 && <i />}
             </button>
-            <span className="avatar small">
-              {actors[actor].name
-                .split(' ')
-                .map((p) => p[0])
-                .slice(0, 2)
-                .join('')}
-            </span>
+            <button
+              className="profile-icon-button"
+              aria-label="Open Profile setup"
+              onClick={() => {
+                setActor('resident');
+                go('profile');
+              }}
+            >
+              <ProfileAvatar profile={state.profile} className="small" />
+            </button>
           </div>
         </header>
         <div className="page-content">

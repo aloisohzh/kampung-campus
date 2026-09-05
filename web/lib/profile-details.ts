@@ -1,3 +1,4 @@
+import type { DocumentExtraction } from './profile-career.ts';
 import { ensure } from './rules.ts';
 import type { ResidentProfile } from './profile.ts';
 
@@ -11,6 +12,8 @@ export type ProfileDocument = {
   size: number;
   contentType: string;
   addedAt: string;
+  extraction?: DocumentExtraction;
+  extractionMethod?: 'ai' | 'text';
   skills: string[];
   status: 'Uploaded' | 'Awaiting verification';
 };
@@ -39,6 +42,9 @@ export const allSkills = (profile?: ResidentProfile): string[] => [
       ...(profile?.records
         .filter((record) => record.kind === 'Skill')
         .map((record) => record.title) ?? []),
+      ...Object.values(profile?.providerProfiles ?? {}).flatMap(
+        (source) => source?.skills ?? [],
+      ),
       ...(profile?.selfSkills ?? []),
       ...(profile?.documents?.flatMap((document) => document.skills) ?? []),
     ].map((skill) => [skill.toLowerCase(), skill]),

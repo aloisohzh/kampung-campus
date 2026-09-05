@@ -91,14 +91,17 @@ void test('reviewed CV skills attach once and keep their document provenance', (
   assert.equal(removed.profile?.documents?.length, 0);
   assert.deepEqual(allSkills(removed.profile), []);
 });
-void test('uploaded accreditations cannot claim verified status and do not add skills as qualifications', () => {
+void test('uploaded accreditation skills remain self-reported and cannot claim verified qualifications', () => {
   const result = apply(login(), 'profileAttach', {
     ...upload('Accreditation'),
     status: 'Verified',
     expires: '2027-12-31',
   });
   assert.equal(result.profile?.documents?.[0].status, 'Awaiting verification');
-  assert.deepEqual(result.profile?.documents?.[0].skills, []);
+  assert.deepEqual(result.profile?.documents?.[0].skills, [
+    'Project management',
+    'Teaching',
+  ]);
   assert.equal(result.profile?.records.length, 0);
   assert.throws(
     () =>

@@ -43,7 +43,10 @@ export async function loadSpace(owner: string) {
 }
 export async function mutateSpace(owner: string, command: Command) {
   const db = database();
-  if (command.type === 'profileAttach') {
+  if (
+    command.type === 'profileAttach' ||
+    (command.type === 'profilePhoto' && command.remove !== true)
+  ) {
     const metadata = await db
       .prepare(
         'SELECT id,name,size,content_type FROM evidence_uploads WHERE id = ? AND owner = ?',

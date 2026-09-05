@@ -123,6 +123,7 @@ export function execute(
     case 'profileImport':
     case 'profileDisconnect':
     case 'profileUpdate':
+    case 'profilePhoto':
     case 'profileAttach':
     case 'profileRemoveDocument':
     case 'profileComplete': {

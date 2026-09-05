@@ -3,7 +3,7 @@ import { suggestSkills } from './profile-details';
 const MAX_TEXT = 60000;
 export async function readCV(
   file: File,
-): Promise<{ skills: string[]; note: string }> {
+): Promise<{ text: string; skills: string[]; note: string }> {
   const extension = file.name.split('.').at(-1)?.toLowerCase();
   let text = '';
   let partial = false;
@@ -58,6 +58,7 @@ export async function readCV(
   } else throw new Error('Choose a PDF, DOCX or TXT CV.');
   const skills = suggestSkills(text);
   return {
+    text: text.slice(0, MAX_TEXT),
     skills,
     note: text.trim()
       ? (partial ? 'Suggestions use the first 15 pages. ' : '') +

@@ -72,12 +72,17 @@ export async function GET(request: Request) {
       .bind(id, owner)
       .first<{ id: string; name: string; content_type: string }>();
     if (!metadata) return new Response('Not found', { status: 404 });
+    const inline = new URL(request.url).searchParams.get('view') === 'photo';
+    if (inline && !['image/jpeg', 'image/png'].includes(metadata.content_type))
+      return new Response('Not found', { status: 404 });
     const file = await env.FILES.get(metadata.id);
     if (!file) return new Response('Not found', { status: 404 });
     return new Response(file.body, {
       headers: {
         'Content-Type': metadata.content_type,
-        'Content-Disposition': `attachment; filename="document-${id}.${metadata.content_type === 'application/pdf' ? 'pdf' : metadata.content_type === 'image/png' ? 'png' : metadata.content_type === 'text/plain' ? 'txt' : metadata.content_type.includes('wordprocessingml') ? 'docx' : 'jpg'}"`,
+        'Content-Disposition':
+          (inline ? 'inline' : 'attachment') +
+          `; filename="document-${id}.${metadata.content_type === 'application/pdf' ? 'pdf' : metadata.content_type === 'image/png' ? 'png' : metadata.content_type === 'text/plain' ? 'txt' : metadata.content_type.includes('wordprocessingml') ? 'docx' : 'jpg'}"`,
         'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
       },

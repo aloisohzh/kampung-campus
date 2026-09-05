@@ -191,11 +191,13 @@ assert.equal(up.status, 200);
 const file = await up.json();
 const ownFile = await fetch(`${base}/api/evidence?id=${file.id}`, { headers });
 assert.equal(ownFile.status, 200);
+await ownFile.arrayBuffer();
 assert.match(ownFile.headers.get('content-disposition'), /attachment/);
 const otherFile = await fetch(`${base}/api/evidence?id=${file.id}`, {
   headers: ownerTwoHeaders,
 });
 assert.equal(otherFile.status, 404);
+await otherFile.text();
 console.log(
   'PASS: evidence persists in R2 and is inaccessible from another sandbox',
 );
@@ -289,6 +291,137 @@ assert.ok(
 );
 console.log(
   'PASS: CV files and reviewed skills persist; document ownership, deduplication, verification status and account completion are enforced',
+);
+
+const beforeAccountSync = (await get()).state;
+const linkedAccount = await post('profileLogin', 'resident', {
+  source: 'linkedin',
+  consent: true,
+  autoSync: true,
+  careerConsent: true,
+});
+assert.equal(linkedAccount.status, 200);
+assert.equal(
+  linkedAccount.state.profile.providerProfiles.linkedin.experience.length,
+  2,
+);
+assert.deepEqual(
+  linkedAccount.state.profile.documents,
+  beforeAccountSync.profile.documents,
+);
+const againAccount = await post('profileLogin', 'resident', {
+  source: 'singpass',
+  consent: true,
+  autoSync: true,
+});
+assert.equal(againAccount.status, 200);
+assert.equal(
+  againAccount.state.profile.providerProfiles.linkedin.experience.length,
+  2,
+);
+assert.deepEqual(
+  againAccount.state.transactions,
+  beforeAccountSync.transactions,
+);
+console.log(
+  'PASS: sign-in synchronises consented provider fields without duplicates or changing uploaded documents and credits',
+);
+
+const photoData = new FormData();
+photoData.append(
+  'file',
+  new Blob(
+    [
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+i7x8AAAAASUVORK5CYII=',
+        'base64',
+      ),
+    ],
+    { type: 'image/png' },
+  ),
+  'profile.png',
+);
+const photoResponse = await fetch(base + '/api/evidence', {
+  method: 'POST',
+  headers: { 'oai-authenticated-user-id': owner, Origin: base },
+  body: photoData,
+});
+assert.equal(photoResponse.status, 200);
+const photo = await photoResponse.json();
+assert.equal(
+  (await post('profilePhoto', 'resident', { uploadId: photo.id })).status,
+  200,
+);
+assert.equal((await get()).state.profile.photo.id, photo.id);
+const photoRead = await fetch(
+  base + '/api/evidence?id=' + photo.id + '&view=photo',
+  { headers },
+);
+assert.equal(photoRead.status, 200);
+assert.ok((await photoRead.arrayBuffer()).byteLength > 0);
+assert.equal(photoRead.headers.get('content-type'), 'image/png');
+assert.match(photoRead.headers.get('content-disposition'), /inline/);
+const privatePhoto = await fetch(
+  base + '/api/evidence?id=' + photo.id + '&view=photo',
+  { headers: ownerTwoHeaders },
+);
+assert.equal(privatePhoto.status, 404);
+await privatePhoto.arrayBuffer();
+const notPhoto = await fetch(
+  base + '/api/evidence?id=' + cvFile.id + '&view=photo',
+  { headers },
+);
+assert.equal(notPhoto.status, 404);
+await notPhoto.arrayBuffer();
+assert.equal(
+  (await post('profilePhoto', 'resident', { uploadId: cvFile.id })).status,
+  400,
+);
+const foreignPhoto = await fetch(base + '/api/pilot', {
+  method: 'POST',
+  headers: ownerTwoHeaders,
+  body: JSON.stringify({
+    type: 'profilePhoto',
+    actor: 'resident',
+    key: crypto.randomUUID(),
+    uploadId: photo.id,
+    document: { id: photo.id, content_type: 'image/png', name: 'forged.png' },
+  }),
+});
+assert.equal(foreignPhoto.status, 400);
+assert.equal(
+  (await post('profilePhoto', 'resident', { remove: true })).status,
+  200,
+);
+assert.equal((await get()).state.profile.photo, undefined);
+console.log(
+  'PASS: profile photos persist, serve as private images, reject foreign ownership and non-image files, and can be removed',
+);
+
+assert.equal((await fetch(base + '/api/profile-extract')).status, 401);
+assert.equal(
+  (
+    await fetch(base + '/api/profile-extract', {
+      method: 'POST',
+      headers: { ...headers, Origin: 'https://unrelated.example' },
+    })
+  ).status,
+  403,
+);
+const aiStatus = await fetch(base + '/api/profile-extract', { headers });
+assert.equal(aiStatus.status, 200);
+const aiCapability = await aiStatus.json();
+assert.equal(typeof aiCapability.available, 'boolean');
+if (!aiCapability.available) {
+  const missingAi = await fetch(base + '/api/profile-extract', {
+    method: 'POST',
+    headers,
+  });
+  assert.equal(missingAi.status, 503);
+  assert.equal((await missingAi.json()).code, 'AI_NOT_CONFIGURED');
+}
+console.log(
+  'PASS: AI extraction is authenticated, rejects foreign origins, and reports missing configuration without fabricating results',
 );
 console.log(
   'All API integration checks passed. Test records are isolated from the preview user.',

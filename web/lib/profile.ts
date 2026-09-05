@@ -1,3 +1,8 @@
+import {
+  providerSnapshot,
+  cleanExtraction,
+  type ProviderSnapshot,
+} from './profile-career.ts';
 import type { Command } from './model.ts';
 import { ensure } from './rules.ts';
 import { DEFAULT_TOWN, type Town } from './towns.ts';
@@ -23,6 +28,9 @@ export type ProfileRecord = {
   syncedAt?: string;
 };
 export type ResidentProfile = {
+  photo?: { id: string; name: string; addedAt: string };
+  providerProfiles?: Partial<Record<LoginProvider, ProviderSnapshot>>;
+  personalSource?: LoginProvider;
   townConfirmedAt?: string;
   accountStep?: number;
   about?: string;
@@ -41,6 +49,8 @@ export type ResidentProfile = {
     consentAt: string;
     lastSynced: string;
     revision: number;
+    autoSync?: boolean;
+    careerConsent?: boolean;
   }[];
   records: ProfileRecord[];
   completedAt?: string;
@@ -162,7 +172,7 @@ export function updateProfile(
     );
     ensure(
       command.consent === true,
-      'Review and accept the sample data consent first.',
+      'Review and accept the profile data consent first.',
     );
     const next: ResidentProfile = profile ?? {
       mode: 'demo',
@@ -175,22 +185,71 @@ export function updateProfile(
       records: [],
     };
     next.login = { provider: source, at: stamp };
+    const previousConnection = next.connections.find(
+      (c) => c.source === source,
+    );
     next.neighbourhood = town;
     next.connections = next.connections.filter((c) => c.source !== source);
     next.connections.push({
       source,
       consentAt: stamp,
       lastSynced: stamp,
-      revision: 1,
+      revision: (previousConnection?.revision ?? 0) + 1,
+      autoSync: command.autoSync === true,
+      careerConsent: source === 'linkedin' && command.careerConsent === true,
     });
+    next.providerProfiles ??= {};
+    for (const connection of next.connections) {
+      const id = connection.source;
+      if (
+        (id === 'singpass' || id === 'linkedin' || id === 'email') &&
+        (id === source || connection.autoSync)
+      ) {
+        next.providerProfiles[id] = providerSnapshot(
+          id,
+          stamp,
+          connection.careerConsent,
+        );
+        connection.lastSynced = stamp;
+        if (id !== source) connection.revision++;
+      }
+    }
+    const personalSource = next.providerProfiles.singpass
+      ? 'singpass'
+      : next.providerProfiles.linkedin
+        ? 'linkedin'
+        : 'email';
+    const details = next.providerProfiles[personalSource];
+    if (details) {
+      next.name = details.name;
+      next.email = details.email;
+      next.personalSource = personalSource;
+    }
     if (source === 'singpass')
       next.identity = { status: 'Verified · demo', checkedAt: stamp };
     return {
       profile: next,
-      message: `${sourceInfo[source].title} preview completed. Your profile details are ready.`,
+      message: 'Your account details are ready. Profile sync completed.',
     };
   }
   ensure(profile, 'Start with a sign-in method.');
+  if (command.type === 'profilePhoto') {
+    if (command.remove === true) {
+      delete profile.photo;
+      return { profile, message: 'Profile photo removed.' };
+    }
+    const metadata = command.document as
+      | { id: string; name: string; content_type: string }
+      | undefined;
+    ensure(
+      metadata &&
+        metadata.id === command.uploadId &&
+        ['image/jpeg', 'image/png'].includes(metadata.content_type),
+      'Choose a JPG or PNG from your account.',
+    );
+    profile.photo = { id: metadata.id, name: metadata.name, addedAt: stamp };
+    return { profile, message: 'Your profile photo is updated everywhere.' };
+  }
   if (command.type === 'profileUpdate') {
     ensure(
       typeof command.about === 'string' && command.about.length <= 1200,
@@ -257,9 +316,16 @@ export function updateProfile(
       issuer: command.issuer.trim(),
       expires: command.expires || undefined,
       addedAt: stamp,
-      skills: kind === 'CV / résumé' ? cleanTags(command.skills) : [],
+      skills: cleanTags(command.skills ?? []),
+      extraction: command.extraction
+        ? cleanExtraction(command.extraction)
+        : undefined,
+      extractionMethod: command.extractionMethod === 'ai' ? 'ai' : 'text',
       status: kind === 'CV / résumé' ? 'Uploaded' : 'Awaiting verification',
     });
+    const reviewed = profile.documents.at(-1)?.extraction;
+    if (kind === 'CV / résumé' && reviewed?.summary && !profile.about)
+      profile.about = reviewed.summary;
     return {
       profile,
       message:
@@ -347,6 +413,11 @@ export function updateProfile(
       (c) => c.source !== source,
     );
     profile.records = profile.records.filter((r) => r.source !== source);
+    if (
+      profile.providerProfiles &&
+      (source === 'linkedin' || source === 'singpass' || source === 'email')
+    )
+      delete profile.providerProfiles[source];
     if (source === 'singpass') profile.identity = { status: 'Unverified' };
     return {
       profile,
@@ -359,10 +430,7 @@ export function updateProfile(
     profile.townConfirmedAt || profile.completedAt,
     'Confirm your town before completing your account.',
   );
-  ensure(
-    command.confirm === true,
-    'Confirm your sample profile details first.',
-  );
+  ensure(command.confirm === true, 'Confirm your profile details first.');
   profile.completedAt = profile.completedAt ?? stamp;
   return {
     profile,

@@ -65,8 +65,11 @@ const roles = Object.keys(rate);
 // Keep the original saved records intact while updating old sample copy on screen.
 const displayDescription = (value: string) =>
   value
-    .replace('Seeded demonstration record.', 'Example contribution record.')
-    .replace('Sample merchant for this demonstration.', 'Example merchant.');
+    .replace('Seeded demonstration record.', 'Contribution awaiting review.')
+    .replace(
+      'Sample merchant for this demonstration.',
+      'Neighbourhood reward partner.',
+    );
 function Status({ value }: { value: string }) {
   return (
     <span className={`status ${value.toLowerCase().replaceAll(' ', '-')}`}>
@@ -197,7 +200,7 @@ export function Workspace({
             ]
           : []),
       ],
-      r.simulated ? 'Request sample benefit' : `Redeem ${r.cost} credits`,
+      r.simulated ? 'Request benefit' : `Redeem ${r.cost} credits`,
     );
   const ownRegistrations = state.registrations.filter(
     (r) => r.resident === 'mei',
@@ -496,7 +499,7 @@ export function Workspace({
                             ?.partner
                         }
                       </h3>
-                      <p>Awaiting sample fulfilment</p>
+                      <p>Awaiting fulfilment</p>
                     </div>
                     <strong>{v.cost}</strong>
                   </div>
@@ -890,9 +893,7 @@ export function Workspace({
                   </div>
                   <div className="reward-content">
                     <Status
-                      value={
-                        r.simulated ? 'Connection preview' : 'Sample voucher'
-                      }
+                      value={r.simulated ? 'Connection preview' : 'Voucher'}
                     />
                     <h3>{r.title}</h3>
                     <p>
@@ -1188,7 +1189,7 @@ export function Workspace({
                           disabled={busy}
                           onClick={() => run('openSpot', { id: a.id })}
                         >
-                          Release sample place
+                          Release a place
                         </Button>
                       )}
                     </>
@@ -1333,7 +1334,7 @@ export function Workspace({
     content = (
       <>
         <div className="section-actions">
-          <p className="muted">S$5,000 sample budget · 8-week programme</p>
+          <p className="muted">S$5,000 programme budget · 8-week programme</p>
           <Button
             variant="outline"
             disabled={busy}
@@ -1429,7 +1430,7 @@ export function Workspace({
             </div>
             <div className="row">
               <div className="row-main">
-                <h3>Issued sample credits</h3>
+                <h3>Issued credits</h3>
                 <p>
                   {state.transactions
                     .filter((t) => t.type === 'earned')
@@ -1448,7 +1449,7 @@ export function Workspace({
             </div>
             <div className="row">
               <div className="row-main">
-                <h3>Outstanding sample vouchers</h3>
+                <h3>Outstanding vouchers</h3>
                 <p>
                   {state.vouchers.filter((v) => v.status === 'Active').length}{' '}
                   active · S$
@@ -1472,7 +1473,7 @@ export function Workspace({
             <div className="row">
               <div className="row-main">
                 <h3>Verified contributions</h3>
-                <p>Resident sample: Mei Lin</p>
+                <p>Resident: {state.profile?.name || 'Mei Lin'}</p>
               </div>
               <strong className="big-value">{approved.length}</strong>
             </div>
@@ -1823,104 +1824,23 @@ export function Workspace({
         </section>
       </div>
     );
-  } else if (page === 'updates')
-    content = (
-      <section className="panel">
-        <h2>Your neighbourhood updates</h2>
-        {state.notices.slice(0, 30).map((n) => (
-          <div className="row" key={n.id}>
-            <span className="mini-icon green">
-              <CheckCircle2 />
-            </span>
-            <div className="row-main">
-              <h3>{n.text}</h3>
-              <p>
-                {date(n.created)} · {time(n.created)}
-              </p>
-            </div>
-          </div>
-        ))}
-      </section>
-    );
-  else
+  } else
     content = (
       <div className="two-columns">
         <section className="panel help-copy">
-          <h2>How Kampung Campus works</h2>
+          <h2>Frequently asked questions</h2>
+          <h3>Where do I update my profile?</h3>
           <p>
-            Profiles, community roles, credits and partner connections currently
-            use example data. Your signed-in workspace is saved separately from
-            everyone else’s.
+            Open Profile setup in the sidebar or select your photo at the top
+            right. Personal details, experience, skills and documents each have
+            their own section.
           </p>
-          <div className="info-box">
-            <h3>Walk through account creation</h3>
-            <p>
-              Review your town, try the example CV, sync credentials, and choose
-              your skills and hobbies before opening your home dashboard.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                chooseActor('resident');
-                go('account');
-              }}
-            >
-              Open account journey
-              <ArrowRight size={16} />
-            </Button>
-          </div>
-          <div className="steps">
-            <div>
-              <h3>1. Give the contribution a second pair of eyes</h3>
-              <p>
-                Mei Lin starts with 40 earned credits and a pending 10-credit
-                helper claim.
-              </p>
-              <Button variant="outline" onClick={() => chooseActor('reviewer')}>
-                Open reviewer view
-                <ArrowRight size={15} />
-              </Button>
-            </div>
-            <div>
-              <h3>2. Turn verified help into a little reward</h3>
-              <p>
-                Approve the helper claim, then redeem the 50-credit kopi
-                voucher.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  chooseActor('resident');
-                  go('rewards');
-                }}
-              >
-                Explore rewards
-                <ArrowRight size={15} />
-              </Button>
-            </div>
-            <div>
-              <h3>3. Try the voucher at the counter</h3>
-              <p>
-                Copy its code from My wallet, check it as the merchant, and
-                confirm use. A second attempt is rejected.
-              </p>
-              <Button variant="outline" onClick={() => chooseActor('merchant')}>
-                Open merchant view
-                <ArrowRight size={15} />
-              </Button>
-            </div>
-            <div>
-              <h3>4. Follow the funding</h3>
-              <p>
-                The operator can inspect the ledger, outstanding commitments,
-                and sample merchant settlement.
-              </p>
-              <Button variant="outline" onClick={() => chooseActor('operator')}>
-                Open operator view
-                <ArrowRight size={15} />
-              </Button>
-            </div>
-          </div>
+          <h3>How do I add a CV or certificate?</h3>
+          <p>
+            Go to Profile setup, then CV & credentials. Upload your document,
+            review the extracted suggestions and save the details you want to
+            keep. Uploading a certificate does not verify it.
+          </p>
           <h3>What earns credits?</h3>
           <p>
             Attend: 5. Help or co-host: 10. Host or mentor: 20. Missions add up
@@ -1939,13 +1859,6 @@ export function Workspace({
             cancellations forfeit the deposit; ask the operator if an exception
             is needed. Appeal a rejected contribution within seven days.
           </p>
-          <h3>What is simulated?</h3>
-          <p>
-            ActiveSG, Culture Pass, and learning sponsorships show possible
-            pathways. No official credits are converted. Every activity photo
-            and named merchant here is illustrative. This workspace is
-            restricted to adult sample residents.
-          </p>
           <h3>Your information</h3>
           <p>
             Your files and history are stored in your workspace until the site
@@ -1955,10 +1868,10 @@ export function Workspace({
         </section>
         <aside>
           <section className="panel">
-            <h2>Something not quite right?</h2>
+            <h2>Create a support case</h2>
             <p className="muted mb-5">
               Record a contribution issue, voucher problem, accessibility
-              exception, or safety concern for the sample operator.
+              exception, or safety concern.
             </p>
             <Button
               disabled={busy}
@@ -1976,11 +1889,11 @@ export function Workspace({
                       min: 20,
                     },
                   ],
-                  'Record concern',
+                  'Create support case',
                 )
               }
             >
-              Raise a concern
+              Create support case
               <CircleHelp size={16} />
             </Button>
             {state.incidents.map((i) => (
@@ -1994,13 +1907,6 @@ export function Workspace({
               </div>
             ))}
           </section>
-          <div className="info-box">
-            <strong>Keep the neighbourhood in the loop</strong>
-            <p>
-              Switch roles using Workspace in the sidebar. These are sample
-              actors for testing the process, not live account permissions.
-            </p>
-          </div>
         </aside>
       </div>
     );

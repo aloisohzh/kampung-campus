@@ -13,21 +13,21 @@ import { Brand } from './brand';
 import { TownSelector } from './town-selector';
 import { SourceMark, ConnectDialog } from './profile';
 import { ProfileDetails } from './profile-details';
-import { ProfileDocuments } from './profile-documents';
+import { ProfileAvatar } from './profile-avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { allSkills } from '@/lib/profile-details';
 import {
   sourceInfo,
   type ResidentProfile,
-  type ProfileSource,
+  type LoginProvider,
 } from '@/lib/profile';
 import type { Town } from '@/lib/towns';
 import type { Run } from '@/lib/presentation';
 
 const steps = [
   'Your neighbourhood',
-  'Bring your experience',
+  'Account connections',
   'Skills & interests',
   'Review & finish',
 ];
@@ -50,7 +50,7 @@ export function AccountSetup({
     profile.accountStep ?? (profile.townConfirmedAt ? 1 : 0),
   );
   const [chosenTown, setChosenTown] = useState<Town>(town);
-  const [source, setSource] = useState<ProfileSource | null>(null);
+  const [source, setSource] = useState<LoginProvider | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   return (
     <main className="account-shell">
@@ -104,14 +104,16 @@ export function AccountSetup({
                 ready. Now choose the town you want to be part of.
               </p>
               <div className="account-identity">
-                <span className="avatar">ML</span>
+                <ProfileAvatar profile={profile} />
                 <div>
                   <strong>{profile.name}</strong>
                   <small>{profile.email}</small>
                 </div>
                 <span className="record-status">
                   <ShieldCheck size={14} />
-                  {profile.identity.status.replace(' · demo', ' · example')}
+                  {profile.identity.status.startsWith('Verified')
+                    ? 'Identity check preview'
+                    : 'Not identity-verified'}
                 </span>
               </div>
               <span className="town-label">
@@ -141,11 +143,12 @@ export function AccountSetup({
           {step === 1 && (
             <>
               <p>
-                Import several records at once, or upload a CV, résumé,
-                certificate or accreditation. Review each source before saving.
+                Connect your sign-in accounts and choose which details stay in
+                sync. Your CV and supporting documents have their own space in
+                Profile setup.
               </p>
               <div className="setup-imports">
-                {(['skills', 'credentials'] as const).map((id) => (
+                {(['singpass', 'linkedin'] as const).map((id) => (
                   <button
                     className="setup-import"
                     key={id}
@@ -157,7 +160,7 @@ export function AccountSetup({
                       <strong>{sourceInfo[id].title}</strong>
                       <small>
                         {profile.connections.some((c) => c.source === id)
-                          ? 'Connected · review and sync updates'
+                          ? 'Connected · review sync preferences'
                           : sourceInfo[id].description}
                       </small>
                     </span>
@@ -169,11 +172,7 @@ export function AccountSetup({
                   </button>
                 ))}
               </div>
-              <ProfileDocuments
-                profile={profile}
-                run={run}
-                disabled={disabled}
-              />
+
               <div className="account-step-actions">
                 <Button
                   variant="outline"
@@ -193,8 +192,8 @@ export function AccountSetup({
                 </Button>
               </div>
               <p className="quiet-copy">
-                Imports and uploads are optional. You can add more in Profile
-                setup.
+                Additional account connections are optional. Documents can be
+                uploaded after account creation.
               </p>
             </>
           )}
@@ -216,7 +215,7 @@ export function AccountSetup({
                 onClick={() => setStep(1)}
               >
                 <ArrowLeft size={15} />
-                Back to experience
+                Back to account connections
               </button>
             </>
           )}

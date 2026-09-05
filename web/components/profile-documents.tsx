@@ -1,6 +1,14 @@
 'use client';
-import { useRef, useState } from 'react';
-import { Upload, FileText, FileBadge, Check, Download, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Upload,
+  FileText,
+  FileBadge,
+  Check,
+  Download,
+  X,
+  Sparkles,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -16,7 +24,9 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { exampleCV, type ProfileDocument } from '@/lib/profile-details';
+import { type ProfileDocument } from '@/lib/profile-details';
+import { emptyExtraction, type DocumentExtraction } from '@/lib/profile-career';
+import { CareerEditor } from './career-editor';
 import { readCV } from '@/lib/document-reader';
 import type { ResidentProfile } from '@/lib/profile';
 import { date, type Run } from '@/lib/presentation';
@@ -46,6 +56,20 @@ export function ProfileDocuments({
   const [expires, setExpires] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [extraction, setExtraction] =
+    useState<DocumentExtraction>(emptyExtraction);
+  const [text, setText] = useState('');
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [method, setMethod] = useState<'text' | 'ai'>('text');
+  useEffect(() => {
+    if (open)
+      void fetch('/api/profile-extract')
+        .then((response) => response.json())
+        .then((data) =>
+          setAiAvailable((data as { available?: boolean }).available === true),
+        )
+        .catch(() => setAiAvailable(false));
+  }, [open]);
   const [note, setNote] = useState('');
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
@@ -78,11 +102,20 @@ export function ProfileDocuments({
     setSkills([]);
     setSuggestions([]);
     setNote('');
-    if (selectedKind !== 'CV / résumé') return;
+    setExtraction(emptyExtraction());
+    setText('');
+    setMethod('text');
+    if (['jpg', 'jpeg', 'png'].includes(extension)) {
+      setNote(
+        'Use AI extraction to read a scanned document, or enter its details below.',
+      );
+      return;
+    }
     setWorking(true);
     try {
       const result = await readCV(normalized);
       if (token !== generation.current) return;
+      setText(result.text);
       setSuggestions(result.skills);
       setSkills(result.skills);
       setNote(result.note);
@@ -97,6 +130,9 @@ export function ProfileDocuments({
   };
   const reset = () => {
     generation.current++;
+    setExtraction(emptyExtraction());
+    setText('');
+    setMethod('text');
     setFile(null);
     setUploadId(null);
     setTitle('');
@@ -113,9 +149,9 @@ export function ProfileDocuments({
     <section className="document-manager">
       <div className="profile-section-heading">
         <div>
-          <h3>Your documents</h3>
+          <h2>CV & credentials</h2>
           <p className="quiet-copy">
-            Keep a CV, certificates and accreditations together.
+            Upload once, review the details, and strengthen your profile.
           </p>
         </div>
         <Button
@@ -134,26 +170,9 @@ export function ProfileDocuments({
         <div className="document-empty">
           <FileText size={28} />
           <p>
-            Add your own document or try the example CV to review suggested
-            skills.
+            Add a CV, résumé, certificate or accreditation. Review extracted
+            skills and experience before they appear in your profile.
           </p>
-          <Button
-            variant="outline"
-            disabled={disabled}
-            onClick={() => {
-              reset();
-              setKind('CV / résumé');
-              setOpen(true);
-              void selectFile(
-                new File([exampleCV], 'Mei-Lin-example-CV.txt', {
-                  type: 'text/plain',
-                }),
-                'CV / résumé',
-              );
-            }}
-          >
-            Try an example CV
-          </Button>
         </div>
       )}
       <div className="document-list">
@@ -195,10 +214,11 @@ export function ProfileDocuments({
         }}
       >
         <DialogContent className="profile-connect-dialog">
-          <DialogTitle>Bring your experience along</DialogTitle>
+          <DialogTitle>Upload, review & add to profile</DialogTitle>
           <DialogDescription>
-            Files are saved to your account after review. Skill suggestions are
-            self-reported; certificate uploads await verification.
+            Review suggested details before saving. AI analysis reads your
+            document to suggest skills, experience and education; it does not
+            verify a qualification.
           </DialogDescription>
           <label className="field-label" htmlFor="document-type">
             Document type
@@ -249,25 +269,74 @@ export function ProfileDocuments({
               }}
             />
           </label>
-          {kind === 'CV / résumé' && !file && (
-            <Button
-              variant="outline"
-              disabled={working || disabled}
-              onClick={() =>
-                void selectFile(
-                  new File([exampleCV], 'Mei-Lin-example-CV.txt', {
-                    type: 'text/plain',
-                  }),
-                )
-              }
-            >
-              Use example CV
-            </Button>
-          )}
+
           {working && (
-            <output className="quiet-copy">
-              Reading the document for skill suggestions…
-            </output>
+            <output className="quiet-copy">Reading your document…</output>
+          )}
+          {file && (
+            <div className="document-ai-action">
+              <div>
+                <strong>Let AI fill in the details</strong>
+                <p className="quiet-copy">
+                  Send this document to OpenAI to extract skills, experience,
+                  education and certificate details for your review.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                disabled={working || disabled || !aiAvailable}
+                onClick={async () => {
+                  if (!file) return;
+                  setWorking(true);
+                  setError('');
+                  try {
+                    const body = new FormData();
+                    body.append('file', file);
+                    body.append('text', text);
+                    body.append('kind', kind);
+                    body.append('consent', 'true');
+                    const response = await fetch('/api/profile-extract', {
+                      method: 'POST',
+                      body,
+                    });
+                    const data = (await response.json()) as {
+                      extraction?: DocumentExtraction;
+                      error?: string;
+                    };
+                    if (!response.ok || !data.extraction)
+                      throw new Error(
+                        data.error ||
+                          'Analysis could not finish. Please retry.',
+                      );
+                    const result = data.extraction;
+                    setExtraction(result);
+                    setTitle(result.title || title);
+                    setIssuer(result.issuer);
+                    setExpires(result.expires);
+                    setSuggestions(result.skills);
+                    setSkills(result.skills);
+                    setMethod('ai');
+                    setConsent(false);
+                    setNote(
+                      'AI-extracted suggestions. Review and correct them before saving.',
+                    );
+                  } catch (e) {
+                    setError((e as Error).message);
+                  } finally {
+                    setWorking(false);
+                  }
+                }}
+              >
+                <Sparkles size={16} />
+                {working ? 'Reading…' : 'Extract with AI'}
+              </Button>
+              {!aiAvailable && (
+                <small>
+                  AI analysis is not available right now. Text-based suggestions
+                  and uploads still work.
+                </small>
+              )}
+            </div>
           )}
           {file && (
             <div className="details-form">
@@ -298,6 +367,60 @@ export function ProfileDocuments({
                       onChange={(e) => setExpires(e.target.value)}
                     />
                   </label>
+                </>
+              )}
+              {method === 'ai' && (
+                <>
+                  <div className="extracted-identity">
+                    <strong>Found in this document</strong>
+                    <p>
+                      {[extraction.name, extraction.email]
+                        .filter(Boolean)
+                        .join(' · ') || 'No personal details found'}
+                    </p>
+                    <small>Your sign-in details stay unchanged.</small>
+                  </div>
+                  <label>
+                    Professional headline
+                    <input
+                      maxLength={160}
+                      value={extraction.headline}
+                      onChange={(e) =>
+                        setExtraction({
+                          ...extraction,
+                          headline: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Professional summary
+                    <textarea
+                      rows={3}
+                      maxLength={1200}
+                      value={extraction.summary}
+                      onChange={(e) =>
+                        setExtraction({
+                          ...extraction,
+                          summary: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <CareerEditor
+                    title="Work & volunteering"
+                    entries={extraction.experience}
+                    onChange={(experience) =>
+                      setExtraction({ ...extraction, experience })
+                    }
+                  />
+                  <CareerEditor
+                    title="Education"
+                    entries={extraction.education}
+                    onChange={(education) =>
+                      setExtraction({ ...extraction, education })
+                    }
+                  />
                 </>
               )}
               {!!suggestions.length && (
@@ -391,6 +514,11 @@ export function ProfileDocuments({
                       issuer,
                       expires,
                       skills,
+                      extraction:
+                        method === 'ai'
+                          ? { ...extraction, skills, title, issuer, expires }
+                          : undefined,
+                      extractionMethod: method,
                     })
                   )
                     setOpen(false);
